@@ -1,0 +1,25 @@
+name = "table-inline-formatting"
+description = "Table with inline formatting (bold, italic, code) in cells"
+
+[[chunks]]
+input = "| Name | Status | Code |\n"
+emit = ""
+
+[[chunks]]
+input = "| ---- | ------ | ---- |\n"
+emit = ""
+
+[[chunks]]
+input = "| **Alice** | *active* | `foo()` |\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = """
+┌───────────┬──────────┬─────────┐
+│ Name      │ Status   │ Code    │
+├───────────┼──────────┼─────────┤
+│ \u001b[1mAlice\u001b[0m     │ \u001b[3mactive\u001b[0m   │ \u001b[48;5;235m foo() \u001b[0m │
+└───────────┴──────────┴─────────┘
+
+"""

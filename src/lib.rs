@@ -3,6 +3,14 @@ use syntect::highlighting::ThemeSet;
 use syntect::easy::HighlightLines;
 use syntect::util::as_24_bit_terminal_escaped;
 
+/// Column alignment in tables
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Alignment {
+    Left,
+    Center,
+    Right,
+}
+
 /// Streaming markdown parser that emits formatted blocks incrementally
 pub struct StreamingParser {
     buffer: String,
@@ -19,6 +27,7 @@ enum ParserState {
     InParagraph,
     InCodeBlock { info: String, fence: String },
     InList,
+    InTable,
 }
 
 #[derive(Debug, Clone)]
@@ -31,6 +40,11 @@ enum BlockBuilder {
         info: String,  // Language info for future syntax highlighting
     },
     List { items: Vec<String> },
+    Table {
+        header: Vec<String>,
+        alignments: Vec<Alignment>,
+        rows: Vec<Vec<String>>,
+    },
 }
 
 struct LinkData {
@@ -111,6 +125,7 @@ impl StreamingParser {
             ParserState::InParagraph => self.handle_in_paragraph(line),
             ParserState::InCodeBlock { .. } => self.handle_in_code_block(line),
             ParserState::InList => self.handle_in_list(line),
+            ParserState::InTable => self.handle_in_table(line),
         }
     }
 
@@ -155,6 +170,24 @@ impl StreamingParser {
         // Blank line completes paragraph
         if trimmed.is_empty() {
             return self.emit_current_block();
+        }
+
+        // Check if this might be a table delimiter row
+        if let BlockBuilder::Paragraph { lines } = &self.current_block {
+            if lines.len() == 1 && self.is_table_delimiter_row(trimmed) {
+                // Extract header cells from first line
+                let header = self.parse_table_row(&lines[0]);
+                let alignments = self.parse_alignments(trimmed);
+
+                // Promote to table
+                self.current_block = BlockBuilder::Table {
+                    header,
+                    alignments,
+                    rows: Vec::new(),
+                };
+                self.state = ParserState::InTable;
+                return None;  // No emission yet
+            }
         }
 
         // Add line to paragraph
@@ -208,6 +241,35 @@ impl StreamingParser {
             (Some(e1), Some(e2)) => Some(format!("{}{}", e1, e2)),
             (Some(e), None) | (None, Some(e)) => Some(e),
             (None, None) => None,
+        }
+    }
+
+    fn handle_in_table(&mut self, line: &str) -> Option<String> {
+        let trimmed = line.trim_end_matches('\n');
+
+        // Blank line ends table
+        if trimmed.is_empty() {
+            return self.emit_current_block();
+        }
+
+        // Check if line looks like a table row (contains |)
+        if !trimmed.contains('|') {
+            // Not a table row - emit table and start new block
+            let emission = self.emit_current_block();
+            let new_emission = self.handle_ready_state(line);
+
+            match (emission, new_emission) {
+                (Some(e1), Some(e2)) => Some(format!("{}{}", e1, e2)),
+                (Some(e), None) | (None, Some(e)) => Some(e),
+                (None, None) => None,
+            }
+        } else {
+            // Parse and accumulate data row
+            let cells = self.parse_table_row(trimmed);
+            if let BlockBuilder::Table { rows, .. } = &mut self.current_block {
+                rows.push(cells);
+            }
+            None
         }
     }
 
@@ -271,6 +333,9 @@ impl StreamingParser {
             BlockBuilder::Paragraph { lines } => Some(self.format_paragraph(&lines)),
             BlockBuilder::CodeBlock { lines, info } => Some(self.format_code_block(&lines, &info)),
             BlockBuilder::List { items } => Some(self.format_list(&items)),
+            BlockBuilder::Table { header, alignments, rows } => {
+                Some(self.format_table(&header, &alignments, &rows))
+            }
         }
     }
 
@@ -343,6 +408,243 @@ impl StreamingParser {
         }
         // Add blank line after list for spacing
         output.push('\n');
+        output
+    }
+
+    // Table parsing and formatting functions
+
+    fn is_table_delimiter_row(&self, line: &str) -> bool {
+        // Must contain pipes
+        if !line.contains('|') {
+            return false;
+        }
+
+        // Split by pipes, check each cell
+        let cells: Vec<&str> = line.split('|')
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .collect();
+
+        if cells.is_empty() {
+            return false;
+        }
+
+        // Each cell must match pattern: optional :, at least 3 dashes, optional :
+        for cell in cells {
+            let chars: Vec<char> = cell.chars().collect();
+            if chars.is_empty() {
+                return false;
+            }
+
+            let starts_colon = chars[0] == ':';
+            let ends_colon = chars[chars.len() - 1] == ':';
+
+            let dash_section = if starts_colon && ends_colon {
+                &chars[1..chars.len()-1]
+            } else if starts_colon {
+                &chars[1..]
+            } else if ends_colon {
+                &chars[..chars.len()-1]
+            } else {
+                &chars[..]
+            };
+
+            // Must have at least 3 dashes
+            if dash_section.len() < 3 || !dash_section.iter().all(|&c| c == '-') {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn parse_table_row(&self, line: &str) -> Vec<String> {
+        let mut cells = Vec::new();
+        let mut current_cell = String::new();
+        let mut escaped = false;
+
+        for ch in line.chars() {
+            if escaped {
+                current_cell.push(ch);
+                escaped = false;
+                continue;
+            }
+
+            if ch == '\\' {
+                escaped = true;
+                continue;
+            }
+
+            if ch == '|' {
+                cells.push(current_cell.trim().to_string());
+                current_cell.clear();
+            } else {
+                current_cell.push(ch);
+            }
+        }
+
+        // Add last cell if not empty
+        if !current_cell.trim().is_empty() {
+            cells.push(current_cell.trim().to_string());
+        }
+
+        // Filter out empty leading/trailing cells (from leading/trailing pipes)
+        if !cells.is_empty() && cells[0].is_empty() {
+            cells.remove(0);
+        }
+        if !cells.is_empty() && cells[cells.len()-1].is_empty() {
+            cells.pop();
+        }
+
+        cells
+    }
+
+    fn parse_alignments(&self, delimiter_row: &str) -> Vec<Alignment> {
+        let cells = self.parse_table_row(delimiter_row);
+
+        cells.iter().map(|cell| {
+            let trimmed = cell.trim();
+            let starts_colon = trimmed.starts_with(':');
+            let ends_colon = trimmed.ends_with(':');
+
+            match (starts_colon, ends_colon) {
+                (true, true) => Alignment::Center,
+                (false, true) => Alignment::Right,
+                _ => Alignment::Left,
+            }
+        }).collect()
+    }
+
+    fn strip_ansi(&self, text: &str) -> String {
+        // Simple ANSI stripper for width calculation
+        let mut result = String::new();
+        let mut in_escape = false;
+
+        for ch in text.chars() {
+            if ch == '\x1b' {
+                in_escape = true;
+            } else if in_escape {
+                if ch == 'm' {
+                    in_escape = false;
+                }
+            } else {
+                result.push(ch);
+            }
+        }
+
+        result
+    }
+
+    fn align_cell(&self, content: &str, width: usize, alignment: Alignment) -> String {
+        let visible_len = self.strip_ansi(content).chars().count();
+
+        if visible_len >= width {
+            return content.to_string();
+        }
+
+        let padding = width - visible_len;
+
+        match alignment {
+            Alignment::Left => {
+                format!("{}{}", content, " ".repeat(padding))
+            }
+            Alignment::Right => {
+                format!("{}{}", " ".repeat(padding), content)
+            }
+            Alignment::Center => {
+                let left_pad = padding / 2;
+                let right_pad = padding - left_pad;
+                format!("{}{}{}", " ".repeat(left_pad), content, " ".repeat(right_pad))
+            }
+        }
+    }
+
+    fn format_table(
+        &self,
+        header: &[String],
+        alignments: &[Alignment],
+        rows: &[Vec<String>]
+    ) -> String {
+        let mut output = String::new();
+
+        // Calculate column widths
+        let num_cols = header.len().max(
+            rows.iter().map(|r| r.len()).max().unwrap_or(0)
+        );
+
+        let mut col_widths = vec![0; num_cols];
+
+        // Measure header (with inline formatting stripped)
+        for (i, cell) in header.iter().enumerate() {
+            col_widths[i] = self.strip_ansi(cell).chars().count();
+        }
+
+        // Measure all data rows
+        for row in rows {
+            for (i, cell) in row.iter().enumerate() {
+                if i < num_cols {
+                    let width = self.strip_ansi(cell).chars().count();
+                    col_widths[i] = col_widths[i].max(width);
+                }
+            }
+        }
+
+        // Ensure minimum column width
+        for width in &mut col_widths {
+            *width = (*width).max(3);
+        }
+
+        // Render top border: ┌───┬───┐
+        output.push('┌');
+        for (i, &width) in col_widths.iter().enumerate() {
+            output.push_str(&"─".repeat(width + 2));
+            if i < col_widths.len() - 1 {
+                output.push('┬');
+            }
+        }
+        output.push_str("┐\n");
+
+        // Render header row: │ Header │ Header │
+        output.push('│');
+        for (i, cell) in header.iter().enumerate() {
+            let formatted = self.format_inline(cell);
+            let aligned = self.align_cell(&formatted, col_widths[i], alignments.get(i).copied().unwrap_or(Alignment::Left));
+            output.push_str(&format!(" {} │", aligned));
+        }
+        output.push('\n');
+
+        // Render separator: ├───┼───┤
+        output.push('├');
+        for (i, &width) in col_widths.iter().enumerate() {
+            output.push_str(&"─".repeat(width + 2));
+            if i < col_widths.len() - 1 {
+                output.push('┼');
+            }
+        }
+        output.push_str("┤\n");
+
+        // Render data rows
+        for row in rows {
+            output.push('│');
+            for (i, &width) in col_widths.iter().enumerate().take(num_cols) {
+                let cell = row.get(i).map(|s| s.as_str()).unwrap_or("");
+                let formatted = self.format_inline(cell);
+                let aligned = self.align_cell(&formatted, width, alignments.get(i).copied().unwrap_or(Alignment::Left));
+                output.push_str(&format!(" {} │", aligned));
+            }
+            output.push('\n');
+        }
+
+        // Render bottom border: └───┴───┘
+        output.push('└');
+        for (i, &width) in col_widths.iter().enumerate() {
+            output.push_str(&"─".repeat(width + 2));
+            if i < col_widths.len() - 1 {
+                output.push('┴');
+            }
+        }
+        output.push_str("┘\n\n");
+
         output
     }
 

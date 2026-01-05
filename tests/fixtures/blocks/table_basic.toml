@@ -1,0 +1,25 @@
+name = "table-basic"
+description = "Basic 2x2 table with header and one data row"
+
+[[chunks]]
+input = "| Name | Age |\n"
+emit = ""
+
+[[chunks]]
+input = "| ---- | --- |\n"
+emit = ""
+
+[[chunks]]
+input = "| Alice | 30 |\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = """
+┌───────┬─────┐
+│ Name  │ Age │
+├───────┼─────┤
+│ Alice │ 30  │
+└───────┴─────┘
+
+"""

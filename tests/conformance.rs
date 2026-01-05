@@ -1,7 +1,7 @@
 mod common;
 
 use common::{ConformanceTest};
-use mdstream::StreamingParser;
+use mdriver::StreamingParser;
 use std::path::PathBuf;
 
 /// Run a single conformance test

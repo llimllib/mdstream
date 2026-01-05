@@ -1,0 +1,36 @@
+name = "table-boundary"
+description = "Table followed by a paragraph to test block transitions"
+
+[[chunks]]
+input = "| Name | Age |\n"
+emit = ""
+
+[[chunks]]
+input = "| ---- | --- |\n"
+emit = ""
+
+[[chunks]]
+input = "| Alice | 30 |\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = """
+┌───────┬─────┐
+│ Name  │ Age │
+├───────┼─────┤
+│ Alice │ 30  │
+└───────┴─────┘
+
+"""
+
+[[chunks]]
+input = "This is a paragraph after the table.\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = """
+This is a paragraph after the table.
+
+"""

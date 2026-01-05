@@ -1,0 +1,25 @@
+name = "table-alignment"
+description = "Table with left, center, and right alignment"
+
+[[chunks]]
+input = "| Left | Center | Right |\n"
+emit = ""
+
+[[chunks]]
+input = "| :--- | :----: | ----: |\n"
+emit = ""
+
+[[chunks]]
+input = "| A | B | C |\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = """
+┌──────┬────────┬───────┐
+│ Left │ Center │ Right │
+├──────┼────────┼───────┤
+│ A    │   B    │     C │
+└──────┴────────┴───────┘
+
+"""
