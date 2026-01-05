@@ -4,7 +4,7 @@ This file provides context for AI assistants (like Claude) working on this codeb
 
 ## Project Overview
 
-**mdstream** is a streaming markdown printer that renders GitHub Flavored Markdown to the terminal with ANSI escape codes. The critical requirement is **incremental emission**: blocks must be emitted immediately once parsed, not buffered until the entire document is complete.
+**mdriver** is a streaming markdown printer that renders GitHub Flavored Markdown to the terminal with ANSI escape codes. The critical requirement is **incremental emission**: blocks must be emitted immediately once parsed, not buffered until the entire document is complete.
 
 ### Why This Is Interesting
 
@@ -256,7 +256,7 @@ impl StreamingParser {
 ## File Structure
 
 ```
-mdstream/
+mdriver/
 ├── Cargo.toml
 ├── README.md           # User-facing documentation
 ├── CLAUDE.md          # This file - AI assistant context

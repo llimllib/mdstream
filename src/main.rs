@@ -18,13 +18,13 @@ fn print_help() {
     println!("    <FILE>              Markdown file to render (reads from stdin if not provided)");
     println!();
     println!("ENVIRONMENT:");
-    println!("    MDSTREAM_THEME      Default syntax highlighting theme (overridden by --theme)");
+    println!("    MDRIVER_THEME       Default syntax highlighting theme (overridden by --theme)");
     println!();
     println!("EXAMPLES:");
     println!("    mdriver README.md");
     println!("    mdriver --theme \"Solarized (dark)\" README.md");
     println!("    cat file.md | mdriver");
-    println!("    MDSTREAM_THEME=\"InspiredGitHub\" mdriver file.md");
+    println!("    MDRIVER_THEME=\"InspiredGitHub\" mdriver file.md");
 }
 
 fn main() -> io::Result<()> {
@@ -72,7 +72,7 @@ fn main() -> io::Result<()> {
 
     // Get theme from parameter, environment variable, or use default
     let theme = theme
-        .or_else(|| env::var("MDSTREAM_THEME").ok())
+        .or_else(|| env::var("MDRIVER_THEME").ok())
         .unwrap_or_else(|| "base16-ocean.dark".to_string());
 
     let mut parser = StreamingParser::with_theme(&theme);

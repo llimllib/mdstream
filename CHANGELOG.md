@@ -14,14 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Syntax Highlighting**: Code blocks now feature full syntax highlighting for 100+ languages using syntect
-- **Configurable Themes**: Choose from multiple color schemes via `--theme` flag or `MDSTREAM_THEME` environment variable
+- **Configurable Themes**: Choose from multiple color schemes via `--theme` flag or `MDRIVER_THEME` environment variable
   - Available themes: InspiredGitHub, Solarized (dark/light), base16-ocean.dark, base16-mocha.dark, and more
   - Use `--list-themes` to see all available themes
 - **OSC8 Hyperlinks**: Markdown links `[text](url)` are converted to clickable terminal hyperlinks (OSC8 protocol)
 - **Nested Inline Formatting**: Support for nested formatting like `**`bold code`**`
 - **CLI Enhancements**:
   - `--help` flag with comprehensive usage documentation
-  - File path argument support (e.g., `mdstream README.md`)
+  - File path argument support (e.g., `mdriver README.md`)
   - `--list-themes` to display available syntax highlighting themes
   - `--theme <THEME>` to specify syntax highlighting theme
 

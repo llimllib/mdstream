@@ -55,7 +55,7 @@ mdriver < document.md
 mdriver --theme "InspiredGitHub" README.md
 
 # Set default theme via environment variable
-MDSTREAM_THEME="Solarized (dark)" mdriver README.md
+MDRIVER_THEME="Solarized (dark)" mdriver README.md
 
 # List available themes
 mdriver --list-themes
@@ -90,11 +90,11 @@ Output (with ANSI colors in your terminal):
 
 ## Syntax Highlighting Themes
 
-mdstream uses the [syntect](https://github.com/trishume/syntect) library for syntax highlighting, supporting 100+ languages with customizable color themes.
+mdriver uses the [syntect](https://github.com/trishume/syntect) library for syntax highlighting, supporting 100+ languages with customizable color themes.
 
 ### Available Themes
 
-Use `mdstream --list-themes` to see all available themes. Popular options include:
+Use `mdriver --list-themes` to see all available themes. Popular options include:
 
 - **InspiredGitHub** - Bright, vibrant colors inspired by GitHub's syntax highlighting
 - **Solarized (dark)** - The classic Solarized dark color scheme
@@ -107,22 +107,22 @@ Use `mdstream --list-themes` to see all available themes. Popular options includ
 
 There are three ways to configure the theme (in order of precedence):
 
-1. **Command-line flag**: `mdstream --theme "InspiredGitHub" file.md`
-2. **Environment variable**: `export MDSTREAM_THEME="Solarized (dark)"`
+1. **Command-line flag**: `mdriver --theme "InspiredGitHub" file.md`
+2. **Environment variable**: `export MDRIVER_THEME="Solarized (dark)"`
 3. **Default**: `base16-ocean.dark`
 
 ### Example
 
 ```bash
 # Use InspiredGitHub theme
-mdstream --theme "InspiredGitHub" README.md
+mdriver --theme "InspiredGitHub" README.md
 
 # Set environment variable for persistent default
-export MDSTREAM_THEME="Solarized (dark)"
-mdstream README.md
+export MDRIVER_THEME="Solarized (dark)"
+mdriver README.md
 
 # Combine with piping
-MDSTREAM_THEME="base16-mocha.dark" cat file.md | mdstream
+MDRIVER_THEME="base16-mocha.dark" cat file.md | mdriver
 ```
 
 ## Conformance Test Suite
@@ -245,7 +245,7 @@ Potential areas for expansion:
 ## Project Structure
 
 ```
-mdstream/
+mdriver/
 ├── Cargo.toml
 ├── README.md
 ├── CLAUDE.md              # AI assistant context and guidelines
