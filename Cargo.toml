@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 unicode-width = "0.1"
+syntect = "5.2"
 
 [dev-dependencies]
 serde = { version = "1.0", features = ["derive"] }

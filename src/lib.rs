@@ -1,10 +1,16 @@
 use unicode_width::UnicodeWidthStr;
+use syntect::parsing::SyntaxSet;
+use syntect::highlighting::ThemeSet;
+use syntect::easy::HighlightLines;
+use syntect::util::as_24_bit_terminal_escaped;
 
 /// Streaming markdown parser that emits formatted blocks incrementally
 pub struct StreamingParser {
     buffer: String,
     state: ParserState,
     current_block: BlockBuilder,
+    syntax_set: SyntaxSet,
+    theme_set: ThemeSet,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -39,6 +45,8 @@ impl StreamingParser {
             buffer: String::new(),
             state: ParserState::Ready,
             current_block: BlockBuilder::None,
+            syntax_set: SyntaxSet::load_defaults_newlines(),
+            theme_set: ThemeSet::load_defaults(),
         }
     }
 
@@ -247,7 +255,7 @@ impl StreamingParser {
         match block {
             BlockBuilder::None => None,
             BlockBuilder::Paragraph { lines } => Some(self.format_paragraph(&lines)),
-            BlockBuilder::CodeBlock { lines, .. } => Some(self.format_code_block(&lines)),
+            BlockBuilder::CodeBlock { lines, info } => Some(self.format_code_block(&lines, &info)),
             BlockBuilder::List { items } => Some(self.format_list(&items)),
         }
     }
@@ -264,24 +272,45 @@ impl StreamingParser {
         format!("{}\n\n", formatted_text)
     }
 
-    fn format_code_block(&self, lines: &[String]) -> String {
+    fn format_code_block(&self, lines: &[String], info: &str) -> String {
         let mut output = String::new();
 
-        // Find the maximum display width (accounting for Unicode characters)
+        // Try to find syntax definition for the language
+        let syntax = self.syntax_set
+            .find_syntax_by_token(info)
+            .unwrap_or_else(|| self.syntax_set.find_syntax_plain_text());
+
+        let theme = &self.theme_set.themes["base16-ocean.dark"];
+        let mut highlighter = HighlightLines::new(syntax, theme);
+
+        // Process lines and collect highlighted output
+        let mut highlighted_lines = Vec::new();
+        for line in lines {
+            let ranges = highlighter.highlight_line(line, &self.syntax_set).unwrap_or_default();
+            let highlighted = as_24_bit_terminal_escaped(&ranges[..], false);
+            highlighted_lines.push(highlighted);
+        }
+
+        // Find the maximum display width (accounting for Unicode characters, excluding ANSI codes)
         let max_width = lines.iter()
             .map(|l| {
                 let with_space = format!(" {}", l);
-                with_space.width()  // Use unicode-width for proper display width
+                with_space.width()
             })
             .max()
             .unwrap_or(1);
 
-        // Each line: leading space + content, pad to max_width for uniform visual width
-        for line in lines {
+        // Each line: leading space + highlighted content + padding + background
+        for (i, line) in lines.iter().enumerate() {
             let content_with_lead = format!(" {}", line);
             let display_width = content_with_lead.width();
             let padding = max_width.saturating_sub(display_width);
-            output.push_str(&format!("\u{001b}[48;5;235m{}{}\u{001b}[0m\n", content_with_lead, " ".repeat(padding)));
+
+            // Apply background color, highlighted content, then padding
+            output.push_str("\u{001b}[48;5;235m ");
+            output.push_str(&highlighted_lines[i]);
+            output.push_str(&" ".repeat(padding));
+            output.push_str("\u{001b}[0m\n");
         }
 
         // Add blank line after code block for spacing
