@@ -1,3 +1,5 @@
+use unicode_width::UnicodeWidthStr;
+
 /// Streaming markdown parser that emits formatted blocks incrementally
 pub struct StreamingParser {
     buffer: String,
@@ -259,16 +261,20 @@ impl StreamingParser {
     fn format_code_block(&self, lines: &[String]) -> String {
         let mut output = String::new();
 
-        // Find the maximum line length AFTER adding leading space
-        let max_len = lines.iter()
-            .map(|l| l.len() + 1)  // +1 for the leading space we'll add
+        // Find the maximum display width (accounting for Unicode characters)
+        let max_width = lines.iter()
+            .map(|l| {
+                let with_space = format!(" {}", l);
+                with_space.width()  // Use unicode-width for proper display width
+            })
             .max()
             .unwrap_or(1);
 
-        // Each line: leading space + content, pad to max_len for uniform width
+        // Each line: leading space + content, pad to max_width for uniform visual width
         for line in lines {
             let content_with_lead = format!(" {}", line);
-            let padding = max_len.saturating_sub(content_with_lead.len());
+            let display_width = content_with_lead.width();
+            let padding = max_width.saturating_sub(display_width);
             output.push_str(&format!("\u{001b}[48;5;235m{}{}\u{001b}[0m\n", content_with_lead, " ".repeat(padding)));
         }
 
