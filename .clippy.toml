@@ -1,0 +1,5 @@
+# Clippy configuration for mdstream
+# Run with: cargo clippy --all-targets --all-features -- -D warnings
+
+# Deny all warnings by default in CI/CD
+# This ensures code quality standards are maintained

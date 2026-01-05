@@ -17,7 +17,11 @@ enum ParserState {
 enum BlockBuilder {
     None,
     Paragraph { lines: Vec<String> },
-    CodeBlock { lines: Vec<String>, info: String },
+    CodeBlock {
+        lines: Vec<String>,
+        #[allow(dead_code)]
+        info: String,  // Language info for future syntax highlighting
+    },
     List { items: Vec<String> },
 }
 
@@ -195,13 +199,13 @@ impl StreamingParser {
     }
 
     fn parse_code_fence(&self, line: &str) -> Option<(String, String)> {
-        if line.starts_with("```") {
+        if let Some(rest) = line.strip_prefix("```") {
             let fence = "```".to_string();
-            let info = line[3..].trim().to_string();
+            let info = rest.trim().to_string();
             Some((info, fence))
-        } else if line.starts_with("~~~") {
+        } else if let Some(rest) = line.strip_prefix("~~~") {
             let fence = "~~~".to_string();
-            let info = line[3..].trim().to_string();
+            let info = rest.trim().to_string();
             Some((info, fence))
         } else {
             None
@@ -287,8 +291,8 @@ impl StreamingParser {
         let mut output = String::new();
         for item in items {
             // Extract the content after the marker
-            let content = if item.starts_with("- ") {
-                &item[2..]
+            let content = if let Some(rest) = item.strip_prefix("- ") {
+                rest
             } else if let Some(dot_pos) = item.find(". ") {
                 &item[dot_pos + 2..]
             } else {
@@ -303,7 +307,7 @@ impl StreamingParser {
 
     fn format_inline(&self, text: &str) -> String {
         let mut result = String::new();
-        let mut chars: Vec<char> = text.chars().collect();
+        let chars: Vec<char> = text.chars().collect();
         let mut i = 0;
 
         while i < chars.len() {

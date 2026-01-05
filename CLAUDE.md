@@ -16,6 +16,47 @@ Most markdown renderers are document-oriented: they parse the entire input and t
 
 This is useful for real-time rendering of markdown as it's typed or received over a network.
 
+## Code Quality Requirements
+
+**CRITICAL**: This project maintains zero-tolerance for compiler warnings and linting errors.
+
+### Mandatory Checks Before Committing
+
+1. **No Compiler Warnings**
+   ```bash
+   cargo build
+   cargo build --release
+   ```
+   Must complete with zero warnings. If warnings appear, fix them immediately.
+
+2. **No Clippy Errors**
+   ```bash
+   cargo clippy --all-targets --all-features -- -D warnings
+   ```
+   Must pass with zero errors. Clippy runs with `-D warnings` which treats warnings as errors.
+
+3. **All Tests Pass**
+   ```bash
+   cargo test
+   ```
+   All conformance tests must pass.
+
+### Common Clippy Fixes
+
+- **Unused variables**: Remove them or prefix with `_`
+- **Unused imports**: Remove them
+- **Manual string stripping**: Use `strip_prefix()` instead of `starts_with()` + slicing
+- **Unnecessary `mut`**: Remove `mut` if variable is never mutated
+- **Dead code**: Add `#[allow(dead_code)]` only if keeping for future use
+
+### When to Allow Warnings
+
+Only use `#[allow(...)]` when:
+- Code is intentionally kept for future features (e.g., `info` field for syntax highlighting)
+- The lint is a false positive (rare, document why)
+
+**Never commit code with warnings or clippy errors.**
+
 ## Test-Driven Development Approach
 
 **IMPORTANT**: This project uses **conformance tests** that define exact expected behavior. The test suite was created BEFORE implementation.
