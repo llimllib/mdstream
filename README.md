@@ -2,6 +2,47 @@
 
 A streaming markdown printer for the console that renders GitHub Flavored Markdown to the terminal with ANSI escape codes. The key feature is **incremental emission**: blocks are emitted immediately once parsed, not waiting for the entire document.
 
+## Installation
+
+```bash
+cargo build --release
+```
+
+The binary will be available at `target/release/mdstream`.
+
+## Usage
+
+```bash
+# Pipe markdown from a file
+cat document.md | mdstream
+
+# Pipe from echo
+echo "# Hello World" | mdstream
+
+# Redirect from file
+mdstream < document.md
+```
+
+### Example
+
+```bash
+$ echo "# Demo\n\nThis is **bold** and *italic*." | mdstream
+```
+
+Output (with ANSI colors in your terminal):
+- **# Demo** (in blue and bold)
+- This is **bold** and *italic*
+
+## Features
+
+✅ **Streaming**: Renders markdown incrementally as it arrives
+✅ **ATX Headings**: `# Heading` with blue/bold formatting
+✅ **Paragraphs**: Text blocks with inline formatting
+✅ **Code Blocks**: Fenced blocks with ` ``` ` and gray background
+✅ **Lists**: Unordered (`-`) and ordered (`1.`) lists
+✅ **Inline Formatting**: `**bold**`, `*italic*`, `` `code` ``
+✅ **ANSI Colors**: Beautiful terminal output
+
 ## Conformance Test Suite
 
 This project uses a comprehensive conformance test suite to verify streaming behavior, markdown parsing, and ANSI formatting.
