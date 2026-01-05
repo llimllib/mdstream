@@ -1,8 +1,23 @@
-### Test Categories
+### Code Quality Standards
 
-Tests are organized in `tests/fixtures/`:
+This project maintains strict code quality requirements:
 
-1. **`blocks/`** - Individual block types (headings, paragraphs, code blocks, lists)
-2. **`streaming/`** - Incremental emission and block boundary detection
-3. **`ansi/`** - ANSI escape sequence formatting (bold, italic, colors)
-4. **`complex/`** - Real-world documents with mixed block types
+```bash
+# All must pass before committing:
+cargo build                                              # No warnings
+cargo build --release                                    # No warnings
+cargo clippy --all-targets --all-features -- -D warnings # No errors
+cargo test                                               # All tests pass
+```
+
+See `CLAUDE.md` for comprehensive development guidelines and best practices.
+
+```rust
+/// List available syntax highlighting themes
+pub fn list_themes() -> Vec<String> {
+    let theme_set = ThemeSet::load_defaults();
+    let mut themes: Vec<String> = theme_set.themes.keys().cloned().collect();
+    themes.sort();
+    themes
+}
+```

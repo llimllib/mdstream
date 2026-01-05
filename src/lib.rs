@@ -1,4 +1,3 @@
-use unicode_width::UnicodeWidthStr;
 use syntect::parsing::SyntaxSet;
 use syntect::highlighting::ThemeSet;
 use syntect::easy::HighlightLines;
@@ -11,6 +10,7 @@ pub struct StreamingParser {
     current_block: BlockBuilder,
     syntax_set: SyntaxSet,
     theme_set: ThemeSet,
+    theme_name: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -41,13 +41,27 @@ struct LinkData {
 
 impl StreamingParser {
     pub fn new() -> Self {
+        Self::with_theme("base16-ocean.dark")
+    }
+
+    /// Create a new parser with a specific syntax highlighting theme
+    pub fn with_theme(theme_name: &str) -> Self {
         Self {
             buffer: String::new(),
             state: ParserState::Ready,
             current_block: BlockBuilder::None,
             syntax_set: SyntaxSet::load_defaults_newlines(),
             theme_set: ThemeSet::load_defaults(),
+            theme_name: theme_name.to_string(),
         }
+    }
+
+    /// List available syntax highlighting themes
+    pub fn list_themes() -> Vec<String> {
+        let theme_set = ThemeSet::load_defaults();
+        let mut themes: Vec<String> = theme_set.themes.keys().cloned().collect();
+        themes.sort();
+        themes
     }
 
     /// Feed a chunk of markdown to the parser
@@ -280,7 +294,9 @@ impl StreamingParser {
             .find_syntax_by_token(info)
             .unwrap_or_else(|| self.syntax_set.find_syntax_plain_text());
 
-        let theme = &self.theme_set.themes["base16-ocean.dark"];
+        let theme = self.theme_set.themes.get(&self.theme_name)
+            .or_else(|| self.theme_set.themes.get("base16-ocean.dark"))
+            .expect("Failed to load syntax highlighting theme");
         let mut highlighter = HighlightLines::new(syntax, theme);
 
         // Process lines and collect highlighted output
@@ -295,23 +311,11 @@ impl StreamingParser {
             highlighted_lines.push(highlighted);
         }
 
-        // Find the maximum display width (accounting for Unicode characters, excluding ANSI codes)
-        let max_width = lines.iter()
-            .map(|l| l.width())
-            .max()
-            .unwrap_or(0);
-
-        // Each line: 4 space indent (no background) + background + content + padding
-        for (i, line) in lines.iter().enumerate() {
-            let display_width = line.width();
-            let padding = max_width.saturating_sub(display_width);
-
-            // 4 spaces indent without background, then apply background to content + padding
+        // Each line: 4 space indent + highlighted content (no background)
+        for highlighted in highlighted_lines.iter() {
             output.push_str("    ");
-            output.push_str("\u{001b}[48;5;235m");
-            output.push_str(&highlighted_lines[i]);
-            output.push_str(&" ".repeat(padding));
-            output.push_str("\u{001b}[0m\n");
+            output.push_str(highlighted);
+            output.push('\n');
         }
 
         // Add blank line after code block for spacing
