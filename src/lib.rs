@@ -277,6 +277,9 @@ impl StreamingParser {
             output.push_str(&format!("\u{001b}[48;5;235m{}{}\u{001b}[0m\n", content_with_lead, " ".repeat(padding)));
         }
 
+        // Add line break after code block for spacing
+        output.push('\n');
+
         output
     }
 
