@@ -32,3 +32,6 @@ Cargo.lock
 
 # Claude Code
 .claude/
+
+# Example files
+example.md
