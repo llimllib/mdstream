@@ -36,13 +36,14 @@ Output (with ANSI colors in your terminal):
 
 ## Features
 
-- **Streaming**: Renders markdown incrementally as it arrives
-- **ATX Headings**: `# Heading` with blue/bold formatting
-- **Paragraphs**: Text blocks with inline formatting
-- **Code Blocks**: Fenced blocks with ` ``` ` and gray background
-- **Lists**: Unordered (`-`) and ordered (`1.`) lists
-- **Inline Formatting**: `**bold**`, `*italic*`, `` `code` ``
-- **ANSI Colors**: Beautiful terminal output
+- ✅ **Streaming**: Renders markdown incrementally as it arrives
+- ✅ **ATX Headings**: `# Heading` with blue/bold formatting
+- ✅ **Paragraphs**: Text blocks with inline formatting
+- ✅ **Code Blocks**: Fenced blocks with ` ``` ` and gray background
+- ✅ **Lists**: Unordered (`-`) and ordered (`1.`) lists
+- ✅ **Inline Formatting**: `**bold**`, `*italic*`, `` `code` ``
+- ✅ **ANSI Colors**: Beautiful terminal output
+- ✅ **Zero Warnings**: Strict clippy linting, no compiler warnings
 
 ## Conformance Test Suite
 
@@ -137,27 +138,30 @@ Example ANSI codes:
 
 ### Current Status
 
-**Test Infrastructure**: ✅ Complete and working
+**All Systems Operational** ✅
 
-The conformance test suite is fully operational with 8 foundational tests:
+- ✅ **Parser Implementation**: Complete with full streaming support
+- ✅ **Test Suite**: 8 conformance tests - all passing
+- ✅ **CLI**: Working binary for command-line usage
+- ✅ **Code Quality**: Zero compiler warnings, zero clippy errors
+- ✅ **Documentation**: Comprehensive CLAUDE.md for AI assistants
 
+**Test Coverage**:
 - Block types: heading, paragraph, code block, list
 - Streaming: incremental emission, block boundaries
-- Formatting: inline ANSI codes
-- Complex: mixed document
+- Formatting: inline ANSI codes (bold, italic, code)
+- Complex: mixed document scenarios
 
-**Parser Implementation**: 🚧 To be implemented
+### Future Enhancements
 
-All tests currently fail (parser is a stub). This is expected - the test suite is ready for TDD implementation.
+Potential areas for expansion:
 
-### Next Steps
-
-1. Implement the `StreamingParser` to pass basic tests
-2. Add markdown parsing (likely using `pulldown-cmark`)
-3. Add ANSI formatting and terminal rendering
-4. Expand test coverage for GFM features (tables, task lists, strikethrough)
-5. Add width/wrapping tests
-6. Add performance benchmarks
+1. Additional GFM features (tables, task lists, strikethrough)
+2. Syntax highlighting for code blocks (using the `info` field)
+3. Blockquotes and nested structures
+4. Terminal width awareness and text wrapping
+5. Performance benchmarks for large documents
+6. Additional inline formatting (links, images)
 
 ## Project Structure
 
@@ -165,18 +169,22 @@ All tests currently fail (parser is a stub). This is expected - the test suite i
 mdstream/
 ├── Cargo.toml
 ├── README.md
+├── CLAUDE.md              # AI assistant context and guidelines
+├── gfmspec.md             # GitHub Flavored Markdown specification
+├── .clippy.toml           # Clippy linting configuration
 ├── src/
-│   └── lib.rs              # StreamingParser (stub)
+│   ├── lib.rs             # StreamingParser implementation
+│   └── main.rs            # CLI binary
 └── tests/
-    ├── conformance.rs      # Test runner
+    ├── conformance.rs     # Test runner
     ├── common/
     │   ├── mod.rs
     │   └── fixture_loader.rs
     └── fixtures/
-        ├── blocks/         # 4 tests
-        ├── streaming/      # 2 tests
-        ├── ansi/           # 1 test
-        └── complex/        # 1 test
+        ├── blocks/        # 4 tests: heading, paragraph, code_block, list
+        ├── streaming/     # 2 tests: incremental_emit, block_boundaries
+        ├── ansi/          # 1 test: inline_formatting
+        └── complex/       # 1 test: mixed_document
 ```
 
 ## Design Philosophy
@@ -185,6 +193,39 @@ mdstream/
 2. **Test-Driven**: Comprehensive test suite defines expected behavior before implementation
 3. **Exact Output**: Tests verify exact ANSI codes, not just content
 4. **Incremental Testing**: Tests verify streaming property, not just final output
+5. **Zero Tolerance**: No compiler warnings, no clippy errors - strict code quality standards
+
+## Development
+
+### Code Quality Standards
+
+This project maintains strict code quality requirements:
+
+```bash
+# All must pass before committing:
+cargo build                                              # No warnings
+cargo build --release                                    # No warnings
+cargo clippy --all-targets --all-features -- -D warnings # No errors
+cargo test                                               # All tests pass
+```
+
+See `CLAUDE.md` for comprehensive development guidelines and best practices.
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Write tests first (TDD approach)
+4. Implement feature to pass tests
+5. Ensure all quality checks pass
+6. Submit pull request
+
+### Key Files
+
+- **`CLAUDE.md`**: Comprehensive guide for AI assistants and developers
+- **`gfmspec.md`**: GitHub Flavored Markdown specification (authoritative source)
+- **`.clippy.toml`**: Linting configuration
+- **`tests/fixtures/`**: Conformance test cases in TOML format
 
 ## License
 
