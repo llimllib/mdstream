@@ -27,6 +27,12 @@ enum BlockBuilder {
     List { items: Vec<String> },
 }
 
+struct LinkData {
+    text: String,
+    url: String,
+    end_pos: usize,
+}
+
 impl StreamingParser {
     pub fn new() -> Self {
         Self {
@@ -309,6 +315,20 @@ impl StreamingParser {
         let mut i = 0;
 
         while i < chars.len() {
+            // Check for [text](url) hyperlinks
+            if chars[i] == '[' {
+                if let Some(link) = self.parse_link(&chars, i) {
+                    // OSC8 format: \x1b]8;;URL\x1b\\TEXT\x1b]8;;\x1b\\
+                    result.push_str("\u{001b}]8;;");
+                    result.push_str(&link.url);
+                    result.push_str("\u{001b}\\");
+                    result.push_str(&link.text);
+                    result.push_str("\u{001b}]8;;\u{001b}\\");
+                    i = link.end_pos;
+                    continue;
+                }
+            }
+
             // Check for **bold**
             if i + 1 < chars.len() && chars[i] == '*' && chars[i + 1] == '*' {
                 if let Some(end) = self.find_closing("**", &chars, i + 2) {
@@ -369,6 +389,32 @@ impl StreamingParser {
         }
 
         result
+    }
+
+    fn parse_link(&self, chars: &[char], start: usize) -> Option<LinkData> {
+        // Looking for [text](url)
+        // start points to '['
+
+        // Find closing ]
+        let text_end = self.find_closing("]", chars, start + 1)?;
+
+        // Check if followed by (
+        if text_end + 1 >= chars.len() || chars[text_end + 1] != '(' {
+            return None;
+        }
+
+        // Find closing )
+        let url_end = self.find_closing(")", chars, text_end + 2)?;
+
+        // Extract text and url
+        let text: String = chars[start + 1..text_end].iter().collect();
+        let url: String = chars[text_end + 2..url_end].iter().collect();
+
+        Some(LinkData {
+            text,
+            url,
+            end_pos: url_end + 1,
+        })
     }
 
     fn find_closing(&self, marker: &str, chars: &[char], start: usize) -> Option<usize> {
