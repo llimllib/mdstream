@@ -47,6 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ANSI color output for terminal rendering
 - Comprehensive conformance test suite (TOML-based fixtures)
 
-[Unreleased]: https://github.com/llimllib/mdstream/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/llimllib/mdstream/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/llimllib/mdstream/releases/tag/v0.1.0
+[Unreleased]: https://github.com/llimllib/mdriver/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/llimllib/mdriver/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/llimllib/mdriver/releases/tag/v0.1.0

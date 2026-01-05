@@ -1,6 +1,6 @@
 # mdriver - Streaming Markdown Printer
 
-[![CI](https://github.com/llimllib/mdstream/actions/workflows/ci.yml/badge.svg)](https://github.com/llimllib/mdstream/actions/workflows/ci.yml)
+[![CI](https://github.com/llimllib/mdriver/actions/workflows/ci.yml/badge.svg)](https://github.com/llimllib/mdriver/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/mdriver.svg)](https://crates.io/crates/mdriver)
 
 A streaming markdown printer for the terminal that renders GitHub Flavored Markdown with ANSI escape codes. The key feature is **incremental emission**: blocks are emitted immediately once parsed, not waiting for the entire document.
@@ -15,7 +15,7 @@ cargo install mdriver
 
 ### From Pre-built Binaries
 
-Download the latest release for your platform from the [GitHub Releases](https://github.com/llimllib/mdstream/releases) page:
+Download the latest release for your platform from the [GitHub Releases](https://github.com/llimllib/mdriver/releases) page:
 
 - **Linux**: `mdriver-x86_64-unknown-linux-gnu.tar.gz` or `mdriver-x86_64-unknown-linux-musl.tar.gz`
 - **macOS**: `mdriver-x86_64-apple-darwin.tar.gz` (Intel) or `mdriver-aarch64-apple-darwin.tar.gz` (Apple Silicon)
@@ -29,8 +29,8 @@ sudo mv mdriver /usr/local/bin/
 ### From Source
 
 ```bash
-git clone https://github.com/llimllib/mdstream.git
-cd mdstream
+git clone https://github.com/llimllib/mdriver.git
+cd mdriver
 cargo build --release
 ```
 
