@@ -30,18 +30,19 @@ $ echo "# Demo\n\nThis is **bold** and *italic*." | mdstream
 ```
 
 Output (with ANSI colors in your terminal):
+
 - **# Demo** (in blue and bold)
-- This is **bold** and *italic*
+- This is **bold** and _italic_
 
 ## Features
 
-✅ **Streaming**: Renders markdown incrementally as it arrives
-✅ **ATX Headings**: `# Heading` with blue/bold formatting
-✅ **Paragraphs**: Text blocks with inline formatting
-✅ **Code Blocks**: Fenced blocks with ` ``` ` and gray background
-✅ **Lists**: Unordered (`-`) and ordered (`1.`) lists
-✅ **Inline Formatting**: `**bold**`, `*italic*`, `` `code` ``
-✅ **ANSI Colors**: Beautiful terminal output
+- **Streaming**: Renders markdown incrementally as it arrives
+- **ATX Headings**: `# Heading` with blue/bold formatting
+- **Paragraphs**: Text blocks with inline formatting
+- **Code Blocks**: Fenced blocks with ` ``` ` and gray background
+- **Lists**: Unordered (`-`) and ordered (`1.`) lists
+- **Inline Formatting**: `**bold**`, `*italic*`, `` `code` ``
+- **ANSI Colors**: Beautiful terminal output
 
 ## Conformance Test Suite
 
@@ -50,6 +51,7 @@ This project uses a comprehensive conformance test suite to verify streaming beh
 ### Test Structure
 
 Tests are written as TOML fixture files that specify:
+
 - **Input chunks**: Markdown arriving incrementally (simulating streaming)
 - **Expected emissions**: What should be output after each chunk (empty string if block incomplete)
 - **Raw ANSI codes**: Actual escape sequences for exact terminal output matching
@@ -74,6 +76,7 @@ emit = "\u001b[1;34m# Hello\u001b[0m\n"
 ```
 
 **Key Points**:
+
 - Each `[[chunks]]` represents a piece of markdown fed to the parser
 - `input`: The markdown chunk
 - `emit`: Expected terminal output (empty `""` means no emission yet)
@@ -126,6 +129,7 @@ Running 4 tests from blocks...
 4. Use `\u001b` for ESC character in ANSI codes
 
 Example ANSI codes:
+
 - Bold: `\u001b[1m...\u001b[0m`
 - Italic: `\u001b[3m...\u001b[0m`
 - Color: `\u001b[1;34m...\u001b[0m` (bold blue)
@@ -136,6 +140,7 @@ Example ANSI codes:
 **Test Infrastructure**: ✅ Complete and working
 
 The conformance test suite is fully operational with 8 foundational tests:
+
 - Block types: heading, paragraph, code block, list
 - Streaming: incremental emission, block boundaries
 - Formatting: inline ANSI codes
