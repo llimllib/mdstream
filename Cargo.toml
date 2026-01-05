@@ -1,0 +1,11 @@
+[package]
+name = "mdstream"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Will add markdown parsing library later (e.g., pulldown-cmark)
+
+[dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"

@@ -1,0 +1,30 @@
+name = "code-block-basic"
+description = "Code block should accumulate and emit only after closing fence"
+
+[[chunks]]
+input = "```"
+emit = ""
+
+[[chunks]]
+input = "rust"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = ""
+
+[[chunks]]
+input = "fn main() {\n"
+emit = ""
+
+[[chunks]]
+input = "    println!(\"Hello\");\n"
+emit = ""
+
+[[chunks]]
+input = "}\n"
+emit = ""
+
+[[chunks]]
+input = "```\n"
+emit = "\u001b[48;5;235m                      \u001b[0m\n\u001b[48;5;235m fn main() {          \u001b[0m\n\u001b[48;5;235m     println!(\"Hello\");\u001b[0m\n\u001b[48;5;235m }                    \u001b[0m\n\u001b[48;5;235m                      \u001b[0m\n"

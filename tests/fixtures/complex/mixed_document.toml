@@ -1,0 +1,50 @@
+name = "mixed-document"
+description = "Complex document with multiple block types streaming incrementally"
+
+[[chunks]]
+input = "# README\n"
+emit = "\u001b[1;34m# README\u001b[0m\n"
+
+[[chunks]]
+input = "\n"
+emit = ""
+
+[[chunks]]
+input = "This is the introduction.\n\n"
+emit = "This is the introduction.\n"
+
+[[chunks]]
+input = "## Features\n"
+emit = "\u001b[1;34m## Features\u001b[0m\n"
+
+[[chunks]]
+input = "\n"
+emit = ""
+
+[[chunks]]
+input = "- Fast\n"
+emit = ""
+
+[[chunks]]
+input = "- Reliable\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = "  • Fast\n  • Reliable\n"
+
+[[chunks]]
+input = "Example code:\n\n"
+emit = "Example code:\n"
+
+[[chunks]]
+input = "```\n"
+emit = ""
+
+[[chunks]]
+input = "hello()\n"
+emit = ""
+
+[[chunks]]
+input = "```\n"
+emit = "\u001b[48;5;235m          \u001b[0m\n\u001b[48;5;235m hello()  \u001b[0m\n\u001b[48;5;235m          \u001b[0m\n"

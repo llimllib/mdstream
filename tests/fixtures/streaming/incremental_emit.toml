@@ -1,0 +1,22 @@
+name = "incremental-heading-then-paragraph"
+description = "Heading emits, then paragraph emits separately"
+
+[[chunks]]
+input = "# Title\n"
+emit = "\u001b[1;34m# Title\u001b[0m\n"
+
+[[chunks]]
+input = "\n"
+emit = ""
+
+[[chunks]]
+input = "First paragraph."
+emit = ""
+
+[[chunks]]
+input = "\n\n"
+emit = "First paragraph.\n"
+
+[[chunks]]
+input = "Second paragraph.\n\n"
+emit = "Second paragraph.\n"
