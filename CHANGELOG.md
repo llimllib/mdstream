@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-01-05
+
+### Fixed
+- Removed x86_64-unknown-linux-musl target from release workflow due to onig_sys compilation issues
+
 ## [0.4.0] - 2026-01-05
 
 ### Changed
@@ -66,7 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ANSI color output for terminal rendering
 - Comprehensive conformance test suite (TOML-based fixtures)
 
-[Unreleased]: https://github.com/llimllib/mdriver/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/llimllib/mdriver/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/llimllib/mdriver/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/llimllib/mdriver/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/llimllib/mdriver/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/llimllib/mdriver/compare/v0.1.0...v0.2.0
