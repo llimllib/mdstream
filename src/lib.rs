@@ -1038,11 +1038,14 @@ impl StreamingParser {
             // Check for [text](url) hyperlinks
             if chars[i] == '[' {
                 if let Some(link) = self.parse_link(&chars, i) {
-                    // OSC8 format: \x1b]8;;URL\x1b\\TEXT\x1b]8;;\x1b\\
+                    // OSC8 format with blue and underline styling
                     result.push_str("\u{001b}]8;;");
                     result.push_str(&link.url);
                     result.push_str("\u{001b}\\");
+                    // Blue and underlined
+                    result.push_str("\u{001b}[34;4m");
                     result.push_str(&link.text);
+                    result.push_str("\u{001b}[0m");
                     result.push_str("\u{001b}]8;;\u{001b}\\");
                     i = link.end_pos;
                     continue;

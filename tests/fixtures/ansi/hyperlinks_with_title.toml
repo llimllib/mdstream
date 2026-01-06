@@ -3,4 +3,4 @@ description = "Links with titles should ignore the title part"
 
 [[chunks]]
 input = "[Link](https://example.com \"Example Site\")\n\n"
-emit = "\u001b]8;;https://example.com\u001b\\Link\u001b]8;;\u001b\\\n\n"
+emit = "\u001b]8;;https://example.com\u001b\\\u001b[34;4mLink\u001b[0m\u001b]8;;\u001b\\\n\n"

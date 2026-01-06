@@ -3,8 +3,8 @@ description = "Test markdown hyperlinks converted to OSC8 terminal hyperlinks"
 
 [[chunks]]
 input = "Visit [Claude](https://claude.ai) for more.\n\n"
-emit = "Visit \u001b]8;;https://claude.ai\u001b\\Claude\u001b]8;;\u001b\\ for more.\n\n"
+emit = "Visit \u001b]8;;https://claude.ai\u001b\\\u001b[34;4mClaude\u001b[0m\u001b]8;;\u001b\\ for more.\n\n"
 
 [[chunks]]
 input = "Check [the docs](https://docs.anthropic.com).\n\n"
-emit = "Check \u001b]8;;https://docs.anthropic.com\u001b\\the docs\u001b]8;;\u001b\\.\n\n"
+emit = "Check \u001b]8;;https://docs.anthropic.com\u001b\\\u001b[34;4mthe docs\u001b[0m\u001b]8;;\u001b\\.\n\n"

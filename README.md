@@ -5,6 +5,8 @@
 
 A streaming markdown printer for the terminal that renders GitHub Flavored Markdown with ANSI escape codes. The key feature is **incremental emission**: blocks are emitted immediately once parsed, not waiting for the entire document.
 
+_Warning_: I wrote this code as an experiment in LLM development. I do not speak fluent rust and I have not read the markdown parser. I'm pretty sure it cannot do anything dangerous, but you've been warned.
+
 ## Installation
 
 ### From crates.io (Recommended)
@@ -21,6 +23,7 @@ Download the latest release for your platform from the [GitHub Releases](https:/
 - **macOS**: `mdriver-x86_64-apple-darwin.tar.gz` (Intel) or `mdriver-aarch64-apple-darwin.tar.gz` (Apple Silicon)
 
 Extract and add to your PATH:
+
 ```bash
 tar xzf mdriver-*.tar.gz
 sudo mv mdriver /usr/local/bin/
@@ -279,6 +282,7 @@ Example ANSI codes:
 - ✅ **Documentation**: Comprehensive CLAUDE.md for AI assistants
 
 **Test Coverage**:
+
 - Block types: heading, paragraph, code block, list
 - Streaming: incremental emission, block boundaries
 - Formatting: inline ANSI codes (bold, italic, code)
