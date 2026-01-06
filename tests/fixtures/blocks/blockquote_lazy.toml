@@ -1,0 +1,14 @@
+name = "blockquote-lazy"
+description = "Lazy continuation - lines without > continue blockquote"
+
+[[chunks]]
+input = "> First line\n"
+emit = ""
+
+[[chunks]]
+input = "Second line\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = " │ First line\n │ Second line\n\n"

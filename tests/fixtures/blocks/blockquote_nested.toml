@@ -1,0 +1,10 @@
+name = "blockquote-nested"
+description = "Nested blockquotes with multiple │ prefixes"
+
+[[chunks]]
+input = "> > Nested\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = " │  │ Nested\n\n"

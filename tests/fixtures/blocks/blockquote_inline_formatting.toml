@@ -1,0 +1,10 @@
+name = "blockquote-inline-formatting"
+description = "Blockquote with inline formatting (bold, italic, code)"
+
+[[chunks]]
+input = "> This is **bold** and *italic* and `code`\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = " │ This is \u001b[1mbold\u001b[0m and \u001b[3mitalic\u001b[0m and \u001b[48;5;235m code \u001b[0m\n\n"

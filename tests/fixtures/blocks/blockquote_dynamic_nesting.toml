@@ -1,0 +1,18 @@
+name = "blockquote-dynamic-nesting"
+description = "Changing nesting levels mid-block"
+
+[[chunks]]
+input = "> Level 1\n"
+emit = ""
+
+[[chunks]]
+input = "> > Level 2\n"
+emit = ""
+
+[[chunks]]
+input = "> Back to 1\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = " │ Level 1\n │  │ Level 2\n │ Back to 1\n\n"

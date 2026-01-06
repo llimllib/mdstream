@@ -1,0 +1,10 @@
+name = "blockquote-basic"
+description = "Basic blockquote with │ prefix"
+
+[[chunks]]
+input = "> Quote\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = " │ Quote\n\n"

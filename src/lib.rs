@@ -28,6 +28,7 @@ enum ParserState {
     InCodeBlock { info: String, fence: String },
     InList,
     InTable,
+    InBlockquote { nesting_level: usize },
 }
 
 #[derive(Debug, Clone)]
@@ -48,6 +49,10 @@ enum BlockBuilder {
         header: Vec<String>,
         alignments: Vec<Alignment>,
         rows: Vec<Vec<String>>,
+    },
+    Blockquote {
+        lines: Vec<(usize, String)>,
+        current_nesting: usize,
     },
 }
 
@@ -130,6 +135,7 @@ impl StreamingParser {
             ParserState::InCodeBlock { .. } => self.handle_in_code_block(line),
             ParserState::InList => self.handle_in_list(line),
             ParserState::InTable => self.handle_in_table(line),
+            ParserState::InBlockquote { .. } => self.handle_in_blockquote(line),
         }
     }
 
@@ -157,6 +163,17 @@ impl StreamingParser {
             self.current_block = BlockBuilder::CodeBlock {
                 lines: Vec::new(),
                 info,
+            };
+            return None;
+        }
+
+        // Check for blockquote
+        if let Some(nesting_level) = self.parse_blockquote_marker(trimmed) {
+            let content = self.strip_blockquote_markers(trimmed, nesting_level);
+            self.state = ParserState::InBlockquote { nesting_level };
+            self.current_block = BlockBuilder::Blockquote {
+                lines: vec![(nesting_level, content)],
+                current_nesting: nesting_level,
             };
             return None;
         }
@@ -287,6 +304,50 @@ impl StreamingParser {
         }
     }
 
+    fn handle_in_blockquote(&mut self, line: &str) -> Option<String> {
+        let trimmed = line.trim_end_matches('\n');
+
+        // Blank line terminates
+        if trimmed.is_empty() {
+            return self.emit_current_block();
+        }
+
+        // Check if line has blockquote marker
+        if let Some(nesting_level) = self.parse_blockquote_marker(trimmed) {
+            let content = self.strip_blockquote_markers(trimmed, nesting_level);
+
+            if let BlockBuilder::Blockquote {
+                lines,
+                current_nesting,
+            } = &mut self.current_block
+            {
+                // Update state nesting
+                if let ParserState::InBlockquote {
+                    nesting_level: ref mut state_nesting,
+                } = &mut self.state
+                {
+                    *state_nesting = nesting_level;
+                }
+
+                lines.push((nesting_level, content));
+                *current_nesting = nesting_level;
+            }
+            return None;
+        }
+
+        // Lazy continuation: line without '>' continues at current nesting
+        if let BlockBuilder::Blockquote {
+            lines,
+            current_nesting,
+        } = &mut self.current_block
+        {
+            lines.push((*current_nesting, trimmed.to_string()));
+            return None;
+        }
+
+        None
+    }
+
     fn parse_atx_heading(&self, line: &str) -> Option<usize> {
         let mut level = 0;
         for ch in line.chars() {
@@ -338,6 +399,56 @@ impl StreamingParser {
         false
     }
 
+    fn parse_blockquote_marker(&self, line: &str) -> Option<usize> {
+        // GFM: 0-3 spaces, then one or more '>', each optionally followed by space
+        let trimmed = line.trim_start();
+        let leading_spaces = line.len() - trimmed.len();
+
+        if leading_spaces > 3 {
+            return None;
+        }
+
+        let mut nesting = 0;
+        let mut chars = trimmed.chars().peekable();
+
+        while let Some(&ch) = chars.peek() {
+            if ch == '>' {
+                nesting += 1;
+                chars.next();
+                if chars.peek() == Some(&' ') {
+                    chars.next();
+                }
+            } else {
+                break;
+            }
+        }
+
+        if nesting > 0 {
+            Some(nesting)
+        } else {
+            None
+        }
+    }
+
+    fn strip_blockquote_markers(&self, line: &str, expected_nesting: usize) -> String {
+        let mut remaining = line.trim_start();
+        let mut removed = 0;
+
+        while removed < expected_nesting {
+            if let Some(rest) = remaining.strip_prefix('>') {
+                remaining = rest;
+                removed += 1;
+                if let Some(rest) = remaining.strip_prefix(' ') {
+                    remaining = rest;
+                }
+            } else {
+                break;
+            }
+        }
+
+        remaining.to_string()
+    }
+
     fn emit_current_block(&mut self) -> Option<String> {
         let block = std::mem::replace(&mut self.current_block, BlockBuilder::None);
         self.state = ParserState::Ready;
@@ -352,6 +463,7 @@ impl StreamingParser {
                 alignments,
                 rows,
             } => Some(self.format_table(&header, &alignments, &rows)),
+            BlockBuilder::Blockquote { lines, .. } => Some(self.format_blockquote(&lines)),
         }
     }
 
@@ -687,6 +799,27 @@ impl StreamingParser {
             }
         }
         output.push_str("┘\n\n");
+
+        output
+    }
+
+    fn format_blockquote(&self, lines: &[(usize, String)]) -> String {
+        let mut output = String::new();
+
+        for (nesting_level, content) in lines {
+            // Generate prefix: " │ " for each nesting level (U+2502 box drawing character)
+            let prefix = " │ ".repeat(*nesting_level);
+
+            // Apply inline formatting to content
+            let formatted_content = self.format_inline(content);
+
+            output.push_str(&prefix);
+            output.push_str(&formatted_content);
+            output.push('\n');
+        }
+
+        // Add blank line after blockquote
+        output.push('\n');
 
         output
     }
