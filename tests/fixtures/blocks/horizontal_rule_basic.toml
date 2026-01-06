@@ -1,0 +1,6 @@
+name = "horizontal-rule-basic"
+description = "Basic horizontal rule with --- should emit immediately"
+
+[[chunks]]
+input = "---\n"
+emit = "\u001b[2m────────────────────────────────────────────────────────────────────────────────\u001b[0m\n\n"

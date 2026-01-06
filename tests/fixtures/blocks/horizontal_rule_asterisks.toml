@@ -1,0 +1,6 @@
+name = "horizontal-rule-asterisks"
+description = "Horizontal rule with *** should emit immediately"
+
+[[chunks]]
+input = "***\n"
+emit = "\u001b[2m────────────────────────────────────────────────────────────────────────────────\u001b[0m\n\n"

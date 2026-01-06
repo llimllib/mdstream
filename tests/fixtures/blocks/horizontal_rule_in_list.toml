@@ -1,0 +1,18 @@
+name = "horizontal-rule-in-list"
+description = "Horizontal rule should interrupt a list"
+
+[[chunks]]
+input = "- Foo\n"
+emit = ""
+
+[[chunks]]
+input = "- - -\n"
+emit = "  • Foo\n\n\u001b[2m────────────────────────────────────────────────────────────────────────────────\u001b[0m\n\n"
+
+[[chunks]]
+input = "- Bar\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = "  • Bar\n\n"

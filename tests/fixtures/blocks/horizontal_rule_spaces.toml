@@ -1,0 +1,6 @@
+name = "horizontal-rule-spaces"
+description = "Horizontal rule with spaces between characters"
+
+[[chunks]]
+input = "- - -\n"
+emit = "\u001b[2m────────────────────────────────────────────────────────────────────────────────\u001b[0m\n\n"

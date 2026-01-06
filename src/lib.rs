@@ -202,6 +202,12 @@ impl StreamingParser {
             return None;
         }
 
+        // Check for horizontal rule (thematic break)
+        // Must be checked before list items per GFM spec
+        if self.is_horizontal_rule(trimmed) {
+            return Some(self.format_horizontal_rule());
+        }
+
         // Check for list item (- or digit.)
         if let Some((indent, item_type)) = self.parse_list_item(trimmed) {
             self.state = ParserState::InList;
@@ -287,6 +293,16 @@ impl StreamingParser {
         // Blank line completes list
         if trimmed.is_empty() {
             return self.emit_current_block();
+        }
+
+        // Check for horizontal rule (takes precedence over list items per GFM spec)
+        if self.is_horizontal_rule(trimmed) {
+            let emission = self.emit_current_block();
+            let hr = self.format_horizontal_rule();
+            return match emission {
+                Some(e) => Some(format!("{}{}", e, hr)),
+                None => Some(hr),
+            };
         }
 
         // Check if it's another list item
@@ -423,6 +439,48 @@ impl StreamingParser {
         None
     }
 
+    fn is_horizontal_rule(&self, line: &str) -> bool {
+        // Horizontal rule: 0-3 spaces, then 3+ matching -, _, or * chars
+        // with optional spaces/tabs between them
+        let leading_spaces = line.len() - line.trim_start().len();
+
+        if leading_spaces > 3 {
+            return false;
+        }
+
+        let trimmed = line.trim();
+
+        // Count matching characters
+        let mut rule_char: Option<char> = None;
+        let mut count = 0;
+
+        for ch in trimmed.chars() {
+            match ch {
+                '-' | '_' | '*' => {
+                    if let Some(rc) = rule_char {
+                        if rc != ch {
+                            return false; // Mixed characters
+                        }
+                    } else {
+                        rule_char = Some(ch);
+                    }
+                    count += 1;
+                }
+                ' ' | '\t' => {
+                    // Spaces/tabs allowed between rule characters
+                    continue;
+                }
+                _ => {
+                    // Any other character invalidates the rule
+                    return false;
+                }
+            }
+        }
+
+        // Must have at least 3 matching characters
+        count >= 3 && rule_char.is_some()
+    }
+
     fn parse_code_fence(&self, line: &str) -> Option<(String, String)> {
         if let Some(rest) = line.strip_prefix("```") {
             let fence = "```".to_string();
@@ -554,6 +612,14 @@ impl StreamingParser {
             "#".repeat(level),
             formatted_text
         )
+    }
+
+    fn format_horizontal_rule(&self) -> String {
+        // Use a line of dashes with dim/gray color
+        // Terminal width aware, but default to 80 if unavailable
+        let width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
+        let rule = "─".repeat(width);
+        format!("\u{001b}[2m{}\u{001b}[0m\n\n", rule)
     }
 
     fn format_paragraph(&self, lines: &[String]) -> String {
