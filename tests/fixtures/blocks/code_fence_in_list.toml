@@ -1,0 +1,18 @@
+name = "code-fence-in-list"
+description = "Code fences within list items (4-space indentation) should be recognized and content properly stripped"
+
+[[chunks]]
+input = "* Item one\n"
+emit = ""
+
+[[chunks]]
+input = "    ```jsx\n"
+emit = "  • Item one\n\n"
+
+[[chunks]]
+input = "    let x = 1;\n"
+emit = ""
+
+[[chunks]]
+input = "    ```\n"
+emit = "    \u001b[38;2;192;197;206mlet x = 1;\n\u001b[0m\n"

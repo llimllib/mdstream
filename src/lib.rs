@@ -48,7 +48,11 @@ pub struct StreamingParser {
 enum ParserState {
     Ready,
     InParagraph,
-    InCodeBlock { info: String, fence: String },
+    InCodeBlock {
+        info: String,
+        fence: String,
+        indent_offset: usize,
+    },
     InList,
     InTable,
     InBlockquote { nesting_level: usize },
@@ -179,10 +183,11 @@ impl StreamingParser {
         }
 
         // Check for code fence (```)
-        if let Some((info, fence)) = self.parse_code_fence(trimmed) {
+        if let Some((info, fence, indent_offset)) = self.parse_code_fence(trimmed) {
             self.state = ParserState::InCodeBlock {
                 info: info.clone(),
                 fence: fence.clone(),
+                indent_offset,
             };
             self.current_block = BlockBuilder::CodeBlock {
                 lines: Vec::new(),
@@ -273,17 +278,34 @@ impl StreamingParser {
         let trimmed = line.trim_end_matches('\n');
 
         // Check if this is the closing fence
-        if let ParserState::InCodeBlock { fence, .. } = &self.state {
-            if trimmed.starts_with(fence) && trimmed.trim() == fence.trim() {
+        if let ParserState::InCodeBlock {
+            fence,
+            indent_offset,
+            ..
+        } = &self.state
+        {
+            // Closing fence can have 0-3 spaces of indentation (normal case)
+            // or 4+ spaces (when inside a list item)
+            let line_trimmed = trimmed.trim_start();
+
+            // Check if this line is just the fence (possibly with trailing spaces)
+            if line_trimmed.starts_with(fence) && line_trimmed.trim() == fence.trim() {
                 // Closing fence - emit the block
                 return self.emit_current_block();
             }
+
+            // Add line to code block, stripping the indent offset
+            if let BlockBuilder::CodeBlock { lines, .. } = &mut self.current_block {
+                // Strip indent_offset spaces from the beginning if present
+                let line_to_add = if *indent_offset > 0 && trimmed.len() >= *indent_offset {
+                    &trimmed[*indent_offset..]
+                } else {
+                    trimmed
+                };
+                lines.push(line_to_add.to_string());
+            }
         }
 
-        // Add line to code block
-        if let BlockBuilder::CodeBlock { lines, .. } = &mut self.current_block {
-            lines.push(trimmed.to_string());
-        }
         None
     }
 
@@ -311,6 +333,29 @@ impl StreamingParser {
                 items.push((indent, item_type, trimmed.to_string()));
             }
             return None;
+        }
+
+        // Check if this might be a code fence within the list item
+        // List content is typically indented 4 spaces, so check if stripping 4 spaces
+        // reveals a code fence
+        let leading_spaces = trimmed.len() - trimmed.trim_start().len();
+        if leading_spaces >= 4 {
+            let after_indent = &trimmed[4..];
+            if let Some((info, fence, fence_indent)) = self.parse_code_fence(after_indent) {
+                // This is a code fence inside the list - emit the list first
+                let emission = self.emit_current_block();
+                // Then transition to code block state with 4-space + fence indent offset
+                self.state = ParserState::InCodeBlock {
+                    info: info.clone(),
+                    fence: fence.clone(),
+                    indent_offset: 4 + fence_indent,
+                };
+                self.current_block = BlockBuilder::CodeBlock {
+                    lines: Vec::new(),
+                    info,
+                };
+                return emission;
+            }
         }
 
         // Not a list item and not blank - list ends, but we need to process this line
@@ -481,15 +526,24 @@ impl StreamingParser {
         count >= 3 && rule_char.is_some()
     }
 
-    fn parse_code_fence(&self, line: &str) -> Option<(String, String)> {
-        if let Some(rest) = line.strip_prefix("```") {
+    fn parse_code_fence(&self, line: &str) -> Option<(String, String, usize)> {
+        // Code fences can have 0-3 spaces of indentation
+        let leading_spaces = line.len() - line.trim_start().len();
+
+        if leading_spaces > 3 {
+            return None;
+        }
+
+        let trimmed = line.trim_start();
+
+        if let Some(rest) = trimmed.strip_prefix("```") {
             let fence = "```".to_string();
             let info = rest.trim().to_string();
-            Some((info, fence))
-        } else if let Some(rest) = line.strip_prefix("~~~") {
+            Some((info, fence, leading_spaces))
+        } else if let Some(rest) = trimmed.strip_prefix("~~~") {
             let fence = "~~~".to_string();
             let info = rest.trim().to_string();
-            Some((info, fence))
+            Some((info, fence, leading_spaces))
         } else {
             None
         }

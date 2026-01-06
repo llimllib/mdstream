@@ -1,0 +1,14 @@
+name = "code-fence-indented"
+description = "Code fences with 0-3 spaces of indentation should be recognized"
+
+[[chunks]]
+input = "  ```jsx\n"
+emit = ""
+
+[[chunks]]
+input = "  let x = 1;\n"
+emit = ""
+
+[[chunks]]
+input = "  ```\n"
+emit = "    \u001b[38;2;192;197;206mlet x = 1;\n\u001b[0m\n"
