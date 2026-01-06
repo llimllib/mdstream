@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-05
+
+### Changed
+- Renamed `MDSTREAM_THEME` environment variable to `MDRIVER_THEME` for consistency
+- Updated all documentation to use `mdriver` instead of `mdstream`
+
+### Fixed
+- Updated GitHub Actions workflows to use non-deprecated action versions (v4/v6)
+
+## [0.3.0] - 2026-01-05
+
+### Added
+- **GitHub Flavored Markdown Tables**: Full GFM table support with Unicode box-drawing characters
+  - Column alignment support (left `:---`, center `:---:`, right `---:`)
+  - Inline markdown formatting within table cells (bold, italic, code, links)
+  - ANSI-aware column width calculation for proper alignment
+  - Paragraph promotion pattern to detect tables on delimiter row
+- Comprehensive table test coverage with 4 new fixtures
+
 ## [0.2.0] - 2026-01-05
 
 ### Changed
@@ -47,6 +66,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ANSI color output for terminal rendering
 - Comprehensive conformance test suite (TOML-based fixtures)
 
-[Unreleased]: https://github.com/llimllib/mdriver/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/llimllib/mdriver/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/llimllib/mdriver/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/llimllib/mdriver/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/llimllib/mdriver/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/llimllib/mdriver/releases/tag/v0.1.0
