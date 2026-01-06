@@ -1,0 +1,26 @@
+name = "list-mixed"
+description = "Mixed ordered and unordered lists (separate lists)"
+
+[[chunks]]
+input = "1. First\n"
+emit = ""
+
+[[chunks]]
+input = "2. Second\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = "  1. First\n  2. Second\n\n"
+
+[[chunks]]
+input = "- Bullet one\n"
+emit = ""
+
+[[chunks]]
+input = "- Bullet two\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = "  • Bullet one\n  • Bullet two\n\n"

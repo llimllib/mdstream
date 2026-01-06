@@ -11,6 +11,13 @@ enum Alignment {
     Right,
 }
 
+/// List item type
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum ListItemType {
+    Unordered,
+    Ordered,
+}
+
 /// Streaming markdown parser that emits formatted blocks incrementally
 pub struct StreamingParser {
     buffer: String,
@@ -43,7 +50,7 @@ enum BlockBuilder {
         info: String, // Language info for future syntax highlighting
     },
     List {
-        items: Vec<String>,
+        items: Vec<(usize, ListItemType, String)>, // (indentation_level, type, content)
     },
     Table {
         header: Vec<String>,
@@ -179,10 +186,10 @@ impl StreamingParser {
         }
 
         // Check for list item (- or digit.)
-        if self.is_list_item(trimmed) {
+        if let Some((indent, item_type)) = self.parse_list_item(trimmed) {
             self.state = ParserState::InList;
             self.current_block = BlockBuilder::List {
-                items: vec![trimmed.to_string()],
+                items: vec![(indent, item_type, trimmed.to_string())],
             };
             return None;
         }
@@ -255,9 +262,9 @@ impl StreamingParser {
         }
 
         // Check if it's another list item
-        if self.is_list_item(trimmed) {
+        if let Some((indent, item_type)) = self.parse_list_item(trimmed) {
             if let BlockBuilder::List { items } = &mut self.current_block {
-                items.push(trimmed.to_string());
+                items.push((indent, item_type, trimmed.to_string()));
             }
             return None;
         }
@@ -379,24 +386,45 @@ impl StreamingParser {
         }
     }
 
-    fn is_list_item(&self, line: &str) -> bool {
-        // Unordered list: starts with "- "
-        if line.starts_with("- ") {
-            return true;
+    fn parse_list_item(&self, line: &str) -> Option<(usize, ListItemType)> {
+        // GFM: 0-3 spaces for top-level, but nested lists can have more indentation
+        // For simplicity, we allow up to 12 spaces (3 levels of nesting at 4 spaces each)
+        let leading_spaces = line.len() - line.trim_start().len();
+
+        if leading_spaces > 12 {
+            return None;
         }
 
-        // Ordered list: starts with digit(s) followed by "." and space
-        if let Some(dot_pos) = line.find('.') {
-            if dot_pos > 0 && dot_pos < line.len() - 1 {
-                let before_dot = &line[..dot_pos];
-                let after_dot = &line[dot_pos + 1..];
-                if before_dot.chars().all(|c| c.is_ascii_digit()) && after_dot.starts_with(' ') {
-                    return true;
+        let trimmed = line.trim_start();
+
+        // Check for bullet list markers: -, +, *
+        for marker in ['-', '+', '*'] {
+            if trimmed.starts_with(marker) {
+                let rest = &trimmed[1..];
+                // Must be followed by 1-4 spaces
+                let spaces = rest.len() - rest.trim_start().len();
+                if (1..=4).contains(&spaces) && !rest.trim_start().is_empty() {
+                    return Some((leading_spaces, ListItemType::Unordered));
                 }
             }
         }
 
-        false
+        // Check for ordered list: digit(s) followed by "." and 1-4 spaces
+        if let Some(dot_pos) = trimmed.find('.') {
+            if dot_pos > 0 && dot_pos < trimmed.len() - 1 {
+                let before_dot = &trimmed[..dot_pos];
+                let after_dot = &trimmed[dot_pos + 1..];
+                let spaces = after_dot.len() - after_dot.trim_start().len();
+                if before_dot.chars().all(|c| c.is_ascii_digit())
+                    && (1..=4).contains(&spaces)
+                    && !after_dot.trim_start().is_empty()
+                {
+                    return Some((leading_spaces, ListItemType::Ordered));
+                }
+            }
+        }
+
+        None
     }
 
     fn parse_blockquote_marker(&self, line: &str) -> Option<usize> {
@@ -529,20 +557,46 @@ impl StreamingParser {
         output
     }
 
-    fn format_list(&self, items: &[String]) -> String {
+    fn format_list(&self, items: &[(usize, ListItemType, String)]) -> String {
         let mut output = String::new();
-        for item in items {
+        // Track numbering for each nesting level
+        let mut counters: std::collections::HashMap<usize, usize> =
+            std::collections::HashMap::new();
+
+        for (indent_level, item_type, item) in items {
+            let trimmed = item.trim_start();
+
             // Extract the content after the marker
-            let content = if let Some(rest) = item.strip_prefix("- ") {
+            let content = if let Some(rest) = trimmed.strip_prefix("- ") {
                 rest
-            } else if let Some(dot_pos) = item.find(". ") {
-                &item[dot_pos + 2..]
+            } else if let Some(rest) = trimmed.strip_prefix("+ ") {
+                rest
+            } else if let Some(rest) = trimmed.strip_prefix("* ") {
+                rest
+            } else if let Some(dot_pos) = trimmed.find(". ") {
+                &trimmed[dot_pos + 2..]
             } else {
-                item
+                trimmed
             };
 
             let formatted_content = self.format_inline(content);
-            output.push_str(&format!("  • {}\n", formatted_content));
+
+            // Use indentation level to determine nesting (each 4 spaces = 1 level)
+            let nesting_level = indent_level / 4;
+            let indent = "  ".repeat(nesting_level);
+
+            // Format based on item type
+            match item_type {
+                ListItemType::Unordered => {
+                    output.push_str(&format!("{}  • {}\n", indent, formatted_content));
+                }
+                ListItemType::Ordered => {
+                    // Increment counter for this nesting level
+                    let counter = counters.entry(nesting_level).or_insert(0);
+                    *counter += 1;
+                    output.push_str(&format!("{}  {}. {}\n", indent, counter, formatted_content));
+                }
+            }
         }
         // Add blank line after list for spacing
         output.push('\n');
