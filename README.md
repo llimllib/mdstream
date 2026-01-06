@@ -17,7 +17,7 @@ cargo install mdriver
 
 Download the latest release for your platform from the [GitHub Releases](https://github.com/llimllib/mdriver/releases) page:
 
-- **Linux**: `mdriver-x86_64-unknown-linux-gnu.tar.gz` or `mdriver-x86_64-unknown-linux-musl.tar.gz`
+- **Linux**: `mdriver-x86_64-unknown-linux-gnu.tar.gz`
 - **macOS**: `mdriver-x86_64-apple-darwin.tar.gz` (Intel) or `mdriver-aarch64-apple-darwin.tar.gz` (Apple Silicon)
 
 Extract and add to your PATH:
