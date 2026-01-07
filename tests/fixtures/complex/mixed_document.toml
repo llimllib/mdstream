@@ -31,11 +31,11 @@ emit = ""
 
 [[chunks]]
 input = "\n"
-emit = "  • Fast\n  • Reliable\n\n"
+emit = ""
 
 [[chunks]]
 input = "Example code:\n\n"
-emit = "Example code:\n\n"
+emit = "  • Fast\n  • Reliable\n\nExample code:\n\n"
 
 [[chunks]]
 input = "```\n"

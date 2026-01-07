@@ -11,11 +11,11 @@ emit = ""
 
 [[chunks]]
 input = "\n"
-emit = "  1. First\n  2. Second\n\n"
+emit = ""
 
 [[chunks]]
 input = "- Bullet one\n"
-emit = ""
+emit = "  1. First\n  2. Second\n\n"
 
 [[chunks]]
 input = "- Bullet two\n"
@@ -23,4 +23,12 @@ emit = ""
 
 [[chunks]]
 input = "\n"
+emit = ""
+
+[[chunks]]
+input = "Text\n"
 emit = "  • Bullet one\n  • Bullet two\n\n"
+
+[[chunks]]
+input = "\n"
+emit = "Text\n\n"

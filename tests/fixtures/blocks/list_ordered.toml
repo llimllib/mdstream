@@ -15,4 +15,12 @@ emit = ""
 
 [[chunks]]
 input = "\n"
+emit = ""
+
+[[chunks]]
+input = "Text\n"
 emit = "  1. First\n  2. Second\n  3. Third\n\n"
+
+[[chunks]]
+input = "\n"
+emit = "Text\n\n"

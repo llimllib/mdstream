@@ -54,6 +54,7 @@ enum ParserState {
         indent_offset: usize,
     },
     InList,
+    InListAfterBlank, // In a list but just saw a blank line
     InTable,
     InBlockquote { nesting_level: usize },
 }
@@ -162,6 +163,7 @@ impl StreamingParser {
             ParserState::InParagraph => self.handle_in_paragraph(line),
             ParserState::InCodeBlock { .. } => self.handle_in_code_block(line),
             ParserState::InList => self.handle_in_list(line),
+            ParserState::InListAfterBlank => self.handle_in_list_after_blank(line),
             ParserState::InTable => self.handle_in_table(line),
             ParserState::InBlockquote { .. } => self.handle_in_blockquote(line),
         }
@@ -312,9 +314,11 @@ impl StreamingParser {
     fn handle_in_list(&mut self, line: &str) -> Option<String> {
         let trimmed = line.trim_end_matches('\n');
 
-        // Blank line completes list
+        // Blank lines can appear within multi-paragraph list items
+        // Transition to InListAfterBlank to check if list continues
         if trimmed.is_empty() {
-            return self.emit_current_block();
+            self.state = ParserState::InListAfterBlank;
+            return None;
         }
 
         // Check for horizontal rule (takes precedence over list items per GFM spec)
@@ -335,9 +339,7 @@ impl StreamingParser {
             return None;
         }
 
-        // Check if this might be a code fence within the list item
-        // List content is typically indented 4 spaces, so check if stripping 4 spaces
-        // reveals a code fence
+        // Check if this is indented content (4+ spaces) - could be list continuation or code fence
         let leading_spaces = trimmed.len() - trimmed.trim_start().len();
         if leading_spaces >= 4 {
             let after_indent = &trimmed[4..];
@@ -355,6 +357,10 @@ impl StreamingParser {
                     info,
                 };
                 return emission;
+            } else {
+                // Indented content that's not a code fence - it's list continuation (e.g., multi-paragraph item)
+                // Just ignore it and stay in the list
+                return None;
             }
         }
 
@@ -368,6 +374,56 @@ impl StreamingParser {
             (Some(e1), Some(e2)) => Some(format!("{}{}", e1, e2)),
             (Some(e), None) | (None, Some(e)) => Some(e),
             (None, None) => None,
+        }
+    }
+
+    fn handle_in_list_after_blank(&mut self, line: &str) -> Option<String> {
+        let trimmed = line.trim_end_matches('\n');
+
+        // Check if it's another list item
+        if let Some((_, new_type)) = self.parse_list_item(trimmed) {
+            // Check if it's the same type as the current list
+            if let BlockBuilder::List { items } = &self.current_block {
+                if !items.is_empty() {
+                    let (_, current_type, _) = &items[0];
+                    // If same type, continue the list
+                    if *current_type == new_type {
+                        self.state = ParserState::InList;
+                        return self.handle_in_list(line);
+                    }
+                }
+            }
+            // Different type - emit current list and start new one
+            let emission = self.emit_current_block();
+            let new_emission = self.handle_ready_state(line);
+            return match (emission, new_emission) {
+                (Some(e1), Some(e2)) => Some(format!("{}{}", e1, e2)),
+                (Some(e), None) | (None, Some(e)) => Some(e),
+                (None, None) => None,
+            };
+        }
+
+        // Check if it's indented content (4+ spaces) - list continuation
+        let leading_spaces = trimmed.len() - trimmed.trim_start().len();
+        if leading_spaces >= 4 && !trimmed.is_empty() {
+            // This is list continuation - go back to InList and process it
+            self.state = ParserState::InList;
+            return self.handle_in_list(line);
+        }
+
+        // Otherwise (blank line, non-indented content, or anything else), emit the list
+        let emission = self.emit_current_block();
+
+        // If this line is not blank, process it in Ready state
+        if !trimmed.is_empty() {
+            let new_emission = self.handle_ready_state(line);
+            match (emission, new_emission) {
+                (Some(e1), Some(e2)) => Some(format!("{}{}", e1, e2)),
+                (Some(e), None) | (None, Some(e)) => Some(e),
+                (None, None) => None,
+            }
+        } else {
+            emission
         }
     }
 

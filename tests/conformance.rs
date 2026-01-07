@@ -21,6 +21,15 @@ fn run_conformance_test(test: &ConformanceTest) -> Result<(), String> {
         }
     }
 
+    // Flush any remaining buffered content
+    let final_output = parser.flush();
+    if !final_output.is_empty() {
+        return Err(format!(
+            "Unexpected output during flush:\n  Output: {:?}",
+            final_output
+        ));
+    }
+
     Ok(())
 }
 
