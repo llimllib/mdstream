@@ -1,0 +1,7 @@
+name = "paragraph-wrapping"
+description = "Paragraph should wrap at word boundaries to configured width"
+width = 40
+
+[[chunks]]
+input = "This is a paragraph with enough words to require wrapping at the configured width.\n\n"
+emit = "This is a paragraph with enough words to\nrequire wrapping at the configured\nwidth.\n\n"

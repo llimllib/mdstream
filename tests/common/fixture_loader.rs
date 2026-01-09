@@ -6,6 +6,8 @@ use std::path::Path;
 pub struct ConformanceTest {
     pub name: String,
     pub description: String,
+    /// Optional width for line wrapping tests (defaults to 80)
+    pub width: Option<usize>,
     pub chunks: Vec<StreamChunk>,
 }
 

@@ -1,0 +1,7 @@
+name = "long-url-not-broken"
+description = "Long URLs should not be broken apart, even if they exceed width"
+width = 40
+
+[[chunks]]
+input = "Check https://example.com/very/long/path/that/exceeds/width here.\n\n"
+emit = "Check\nhttps://example.com/very/long/path/that/exceeds/width\nhere.\n\n"

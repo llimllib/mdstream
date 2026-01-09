@@ -6,7 +6,11 @@ use std::path::PathBuf;
 
 /// Run a single conformance test
 fn run_conformance_test(test: &ConformanceTest) -> Result<(), String> {
-    let mut parser = StreamingParser::new();
+    let mut parser = if let Some(width) = test.width {
+        StreamingParser::with_width("base16-ocean.dark", mdriver::ImageProtocol::None, width)
+    } else {
+        StreamingParser::new()
+    };
     let mut chunk_num = 0;
 
     for chunk in &test.chunks {
@@ -99,4 +103,9 @@ fn test_ansi_fixtures() {
 #[test]
 fn test_complex_fixtures() {
     run_tests_in_directory("complex").unwrap();
+}
+
+#[test]
+fn test_wrapping_fixtures() {
+    run_tests_in_directory("wrapping").unwrap();
 }

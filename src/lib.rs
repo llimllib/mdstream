@@ -47,6 +47,14 @@ pub struct StreamingParser {
     theme_set: &'static EmbeddedLazyThemeSet,
     theme_name: String,
     image_protocol: ImageProtocol,
+    width: usize,
+}
+
+/// Calculate the default output width: min(terminal_width, 80)
+fn default_width() -> usize {
+    term_size::dimensions()
+        .map(|(w, _)| w.min(80))
+        .unwrap_or(80)
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -112,6 +120,21 @@ impl StreamingParser {
             theme_set: &THEME_SET,
             theme_name: theme_name.to_string(),
             image_protocol,
+            width: default_width(),
+        }
+    }
+
+    /// Create a new parser with a specific width for line wrapping
+    pub fn with_width(theme_name: &str, image_protocol: ImageProtocol, width: usize) -> Self {
+        Self {
+            buffer: String::new(),
+            state: ParserState::Ready,
+            current_block: BlockBuilder::None,
+            syntax_set: two_face::syntax::extra_newlines(),
+            theme_set: &THEME_SET,
+            theme_name: theme_name.to_string(),
+            image_protocol,
+            width,
         }
     }
 
@@ -769,8 +792,16 @@ impl StreamingParser {
             }
         }
 
+        // Apply inline formatting first, then wrap
+        // Handle hard line breaks by wrapping each segment independently
         let formatted_text = self.format_inline(&result);
-        format!("{}\n\n", formatted_text)
+        let mut wrapped_segments: Vec<String> = Vec::new();
+
+        for segment in formatted_text.split('\n') {
+            wrapped_segments.push(self.wrap_text(segment, "", ""));
+        }
+
+        format!("{}\n\n", wrapped_segments.join("\n"))
     }
 
     /// Convert a theme name string to an EmbeddedThemeName enum variant
@@ -862,16 +893,26 @@ impl StreamingParser {
             let nesting_level = indent_level / 4;
             let indent = "  ".repeat(nesting_level);
 
-            // Format based on item type
+            // Format based on item type, with wrapping
             match item_type {
                 ListItemType::Unordered => {
-                    output.push_str(&format!("{}  • {}\n", indent, formatted_content));
+                    let first_indent = format!("{}  • ", indent);
+                    let cont_indent = format!("{}    ", indent); // align with content after bullet
+                    let wrapped = self.wrap_text(&formatted_content, &first_indent, &cont_indent);
+                    output.push_str(&wrapped);
+                    output.push('\n');
                 }
                 ListItemType::Ordered => {
                     // Increment counter for this nesting level
                     let counter = counters.entry(nesting_level).or_insert(0);
                     *counter += 1;
-                    output.push_str(&format!("{}  {}. {}\n", indent, counter, formatted_content));
+                    let first_indent = format!("{}  {}. ", indent, counter);
+                    // Continuation indent aligns with content (after "N. ")
+                    let cont_indent =
+                        format!("{}  {}  ", indent, " ".repeat(counter.to_string().len()));
+                    let wrapped = self.wrap_text(&formatted_content, &first_indent, &cont_indent);
+                    output.push_str(&wrapped);
+                    output.push('\n');
                 }
             }
         }
@@ -1006,6 +1047,92 @@ impl StreamingParser {
         }
 
         result
+    }
+
+    /// Wrap text to self.width, preserving ANSI codes and not breaking words.
+    /// `first_indent` is prepended to the first line, `cont_indent` to continuation lines.
+    /// Long words that exceed width are kept whole on their own line.
+    fn wrap_text(&self, text: &str, first_indent: &str, cont_indent: &str) -> String {
+        let first_indent_width = first_indent.chars().count();
+        let cont_indent_width = cont_indent.chars().count();
+
+        // Split text into "tokens" preserving ANSI codes with adjacent words
+        // We need to split on whitespace while preserving the ANSI codes
+        let mut tokens: Vec<String> = Vec::new();
+        let mut current_token = String::new();
+        let mut in_escape = false;
+
+        for ch in text.chars() {
+            if ch == '\x1b' {
+                in_escape = true;
+                current_token.push(ch);
+            } else if in_escape {
+                current_token.push(ch);
+                if ch == 'm' {
+                    in_escape = false;
+                }
+            } else if ch.is_whitespace() {
+                if !current_token.is_empty() {
+                    tokens.push(current_token);
+                    current_token = String::new();
+                }
+            } else {
+                current_token.push(ch);
+            }
+        }
+        if !current_token.is_empty() {
+            tokens.push(current_token);
+        }
+
+        if tokens.is_empty() {
+            return format!("{}\n", first_indent);
+        }
+
+        let mut lines: Vec<String> = Vec::new();
+        let mut current_line = first_indent.to_string();
+        let mut current_width = first_indent_width;
+        let mut is_first_line = true;
+
+        for token in tokens {
+            let token_width = self.strip_ansi(&token).chars().count();
+
+            // Check if we need to wrap
+            if current_width
+                > (if is_first_line {
+                    first_indent_width
+                } else {
+                    cont_indent_width
+                })
+            {
+                // Not at start of line, check if token fits
+                if current_width + 1 + token_width > self.width {
+                    // Token doesn't fit, start new line
+                    lines.push(current_line);
+                    current_line = format!("{}{}", cont_indent, token);
+                    current_width = cont_indent_width + token_width;
+                    is_first_line = false;
+                } else {
+                    // Token fits, add space and token
+                    current_line.push(' ');
+                    current_line.push_str(&token);
+                    current_width += 1 + token_width;
+                }
+            } else {
+                // At start of line, add token (even if it exceeds width)
+                current_line.push_str(&token);
+                current_width += token_width;
+            }
+        }
+
+        // Don't forget the last line
+        if !current_line.is_empty() && current_line != first_indent && current_line != cont_indent {
+            lines.push(current_line);
+        } else if lines.is_empty() {
+            // Edge case: only whitespace after indent
+            lines.push(first_indent.to_string());
+        }
+
+        lines.join("\n")
     }
 
     fn align_cell(&self, content: &str, width: usize, alignment: Alignment) -> String {
@@ -1144,8 +1271,9 @@ impl StreamingParser {
             // Apply inline formatting to content
             let formatted_content = self.format_inline(content);
 
-            output.push_str(&prefix);
-            output.push_str(&formatted_content);
+            // Wrap content with prefix on each line
+            let wrapped = self.wrap_text(&formatted_content, &prefix, &prefix);
+            output.push_str(&wrapped);
             output.push('\n');
         }
 

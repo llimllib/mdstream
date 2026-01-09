@@ -1,0 +1,19 @@
+name = "list-item-wrapping"
+description = "List items should wrap with hanging indent for continuation lines"
+width = 40
+
+[[chunks]]
+input = "- This is a list item with enough text to wrap\n"
+emit = ""
+
+[[chunks]]
+input = "\n"
+emit = ""
+
+[[chunks]]
+input = "Done.\n"
+emit = "  • This is a list item with enough text\n    to wrap\n\n"
+
+[[chunks]]
+input = "\n"
+emit = "Done.\n\n"

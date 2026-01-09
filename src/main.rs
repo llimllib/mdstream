@@ -14,17 +14,20 @@ fn print_help() {
     println!("    --list-themes       List available syntax highlighting themes");
     println!("    --theme <THEME>     Use specified syntax highlighting theme");
     println!("    --images <PROTOCOL> Enable image rendering (protocols: kitty)");
+    println!("    --width <N>         Set output width for line wrapping (default: min(terminal width, 80))");
     println!();
     println!("ARGS:");
     println!("    <FILE>              Markdown file to render (reads from stdin if not provided)");
     println!();
     println!("ENVIRONMENT:");
     println!("    MDRIVER_THEME       Default syntax highlighting theme (overridden by --theme)");
+    println!("    MDRIVER_WIDTH       Default output width (overridden by --width)");
     println!();
     println!("EXAMPLES:");
     println!("    mdriver README.md");
     println!("    mdriver --theme \"Solarized (dark)\" README.md");
     println!("    mdriver --images kitty document.md");
+    println!("    mdriver --width 100 document.md");
     println!("    cat file.md | mdriver");
     println!("    MDRIVER_THEME=\"InspiredGitHub\" mdriver file.md");
 }
@@ -34,6 +37,7 @@ fn main() -> io::Result<()> {
 
     // Parse arguments
     let mut theme: Option<String> = None;
+    let mut width: Option<usize> = None;
     let mut image_protocol = mdriver::ImageProtocol::None;
     let mut file_path: Option<String> = None;
     let mut i = 1;
@@ -57,6 +61,25 @@ fn main() -> io::Result<()> {
                     i += 2;
                 } else {
                     eprintln!("Error: --theme requires a theme name");
+                    eprintln!("Run 'mdriver --help' for usage information");
+                    std::process::exit(1);
+                }
+            }
+            "--width" => {
+                if i + 1 < args.len() {
+                    match args[i + 1].parse::<usize>() {
+                        Ok(w) if w > 0 => {
+                            width = Some(w);
+                            i += 2;
+                        }
+                        _ => {
+                            eprintln!("Error: --width requires a positive integer");
+                            eprintln!("Run 'mdriver --help' for usage information");
+                            std::process::exit(1);
+                        }
+                    }
+                } else {
+                    eprintln!("Error: --width requires a number");
                     eprintln!("Run 'mdriver --help' for usage information");
                     std::process::exit(1);
                 }
@@ -96,7 +119,14 @@ fn main() -> io::Result<()> {
         .or_else(|| env::var("MDRIVER_THEME").ok())
         .unwrap_or_else(|| "base16-ocean.dark".to_string());
 
-    let mut parser = StreamingParser::with_theme(&theme, image_protocol);
+    // Get width from parameter, environment variable, or use default
+    let width = width.or_else(|| env::var("MDRIVER_WIDTH").ok().and_then(|s| s.parse().ok()));
+
+    let mut parser = if let Some(w) = width {
+        StreamingParser::with_width(&theme, image_protocol, w)
+    } else {
+        StreamingParser::with_theme(&theme, image_protocol)
+    };
     let mut buffer = [0u8; 4096];
 
     // Read from file or stdin

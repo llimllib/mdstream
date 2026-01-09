@@ -1,0 +1,7 @@
+name = "blockquote-wrapping"
+description = "Blockquotes should wrap with prefix on each line"
+width = 40
+
+[[chunks]]
+input = "> This is a blockquote with enough text to wrap\n\n"
+emit = " │ This is a blockquote with enough text\n │ to wrap\n\n"
