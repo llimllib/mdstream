@@ -63,6 +63,23 @@ Only use `#[allow(...)]` when:
 
 **Never commit code without running `cargo fmt`, or with warnings or clippy errors.**
 
+## Pull Request Workflow
+
+Use the `gh` CLI tool for creating pull requests. When creating a PR:
+
+1. **Export the session transcript** using `/export`
+2. **Create a gist** with the transcript: `gh gist create <export_path>/conversation_full.md --public`
+3. **Create the PR** with `gh pr create`, including a link to the transcript gist
+
+PRs should include a "Session transcript" section with a link to the gist, e.g.:
+
+```markdown
+## Session transcript
+[Claude Code session transcript](https://gist.github.com/llimllib/...)
+```
+
+This provides transparency and context for reviewers about how the changes were developed.
+
 ## Test-Driven Development Approach
 
 **IMPORTANT**: This project uses **conformance tests** that define exact expected behavior. The test suite was created BEFORE implementation.
