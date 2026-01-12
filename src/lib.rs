@@ -1036,19 +1036,54 @@ impl StreamingParser {
     }
 
     fn strip_ansi(&self, text: &str) -> String {
-        // Simple ANSI stripper for width calculation
+        // Strip ANSI escape sequences for width calculation
+        // Handles both SGR sequences (\x1b[...m) and OSC8 hyperlinks (\x1b]8;;...\x1b\\)
         let mut result = String::new();
-        let mut in_escape = false;
+        let chars: Vec<char> = text.chars().collect();
+        let mut i = 0;
 
-        for ch in text.chars() {
-            if ch == '\x1b' {
-                in_escape = true;
-            } else if in_escape {
-                if ch == 'm' {
-                    in_escape = false;
+        while i < chars.len() {
+            if chars[i] == '\x1b' {
+                if i + 1 < chars.len() {
+                    match chars[i + 1] {
+                        '[' => {
+                            // SGR sequence: \x1b[...m - skip until 'm'
+                            i += 2;
+                            while i < chars.len() && chars[i] != 'm' {
+                                i += 1;
+                            }
+                            if i < chars.len() {
+                                i += 1; // skip the 'm'
+                            }
+                        }
+                        ']' => {
+                            // OSC sequence: \x1b]...ST where ST is \x1b\\ or BEL
+                            // Used for OSC8 hyperlinks: \x1b]8;;URL\x1b\\
+                            i += 2;
+                            while i < chars.len() {
+                                if chars[i] == '\x1b' && i + 1 < chars.len() && chars[i + 1] == '\\'
+                                {
+                                    i += 2; // skip \x1b\\
+                                    break;
+                                } else if chars[i] == '\x07' {
+                                    // BEL is also a valid string terminator
+                                    i += 1;
+                                    break;
+                                }
+                                i += 1;
+                            }
+                        }
+                        _ => {
+                            // Unknown escape sequence, skip the ESC and next char
+                            i += 2;
+                        }
+                    }
+                } else {
+                    i += 1;
                 }
             } else {
-                result.push(ch);
+                result.push(chars[i]);
+                i += 1;
             }
         }
 
@@ -1064,26 +1099,73 @@ impl StreamingParser {
 
         // Split text into "tokens" preserving ANSI codes with adjacent words
         // We need to split on whitespace while preserving the ANSI codes
+        // Handles both SGR sequences (\x1b[...m) and OSC8 hyperlinks (\x1b]8;;...\x1b\\)
         let mut tokens: Vec<String> = Vec::new();
         let mut current_token = String::new();
-        let mut in_escape = false;
+        let chars: Vec<char> = text.chars().collect();
+        let mut i = 0;
 
-        for ch in text.chars() {
-            if ch == '\x1b' {
-                in_escape = true;
-                current_token.push(ch);
-            } else if in_escape {
-                current_token.push(ch);
-                if ch == 'm' {
-                    in_escape = false;
+        while i < chars.len() {
+            if chars[i] == '\x1b' {
+                if i + 1 < chars.len() {
+                    match chars[i + 1] {
+                        '[' => {
+                            // SGR sequence: \x1b[...m - keep until 'm'
+                            current_token.push(chars[i]);
+                            current_token.push(chars[i + 1]);
+                            i += 2;
+                            while i < chars.len() && chars[i] != 'm' {
+                                current_token.push(chars[i]);
+                                i += 1;
+                            }
+                            if i < chars.len() {
+                                current_token.push(chars[i]); // the 'm'
+                                i += 1;
+                            }
+                        }
+                        ']' => {
+                            // OSC sequence: \x1b]...ST where ST is \x1b\\ or BEL
+                            // Used for OSC8 hyperlinks: \x1b]8;;URL\x1b\\
+                            current_token.push(chars[i]);
+                            current_token.push(chars[i + 1]);
+                            i += 2;
+                            while i < chars.len() {
+                                if chars[i] == '\x1b' && i + 1 < chars.len() && chars[i + 1] == '\\'
+                                {
+                                    current_token.push(chars[i]);
+                                    current_token.push(chars[i + 1]);
+                                    i += 2;
+                                    break;
+                                } else if chars[i] == '\x07' {
+                                    // BEL is also a valid string terminator
+                                    current_token.push(chars[i]);
+                                    i += 1;
+                                    break;
+                                }
+                                current_token.push(chars[i]);
+                                i += 1;
+                            }
+                        }
+                        _ => {
+                            // Unknown escape sequence, include ESC and next char
+                            current_token.push(chars[i]);
+                            current_token.push(chars[i + 1]);
+                            i += 2;
+                        }
+                    }
+                } else {
+                    current_token.push(chars[i]);
+                    i += 1;
                 }
-            } else if ch.is_whitespace() {
+            } else if chars[i].is_whitespace() {
                 if !current_token.is_empty() {
                     tokens.push(current_token);
                     current_token = String::new();
                 }
+                i += 1;
             } else {
-                current_token.push(ch);
+                current_token.push(chars[i]);
+                i += 1;
             }
         }
         if !current_token.is_empty() {
@@ -2067,6 +2149,153 @@ mod tests {
             let p = parser();
             let result = p.extract_href(r#"a HREF="https://example.com""#);
             assert_eq!(result, Some("https://example.com".to_string()));
+        }
+    }
+
+    mod strip_ansi_tests {
+        use super::*;
+
+        #[test]
+        fn test_strip_basic_sgr() {
+            let p = parser();
+            let text = "\x1b[1mbold\x1b[0m";
+            assert_eq!(p.strip_ansi(text), "bold");
+        }
+
+        #[test]
+        fn test_strip_osc8_hyperlink() {
+            let p = parser();
+            // OSC8 hyperlink format: \x1b]8;;URL\x1b\\ VISIBLE_TEXT \x1b]8;;\x1b\\
+            let text = "\x1b]8;;https://example.com\x1b\\link text\x1b]8;;\x1b\\";
+            assert_eq!(p.strip_ansi(text), "link text");
+        }
+
+        #[test]
+        fn test_strip_osc8_with_styling() {
+            let p = parser();
+            // Hyperlink with blue underline styling
+            let text = "\x1b]8;;https://example.com\x1b\\\x1b[34;4mlink text\x1b[0m\x1b]8;;\x1b\\";
+            assert_eq!(p.strip_ansi(text), "link text");
+        }
+
+        #[test]
+        fn test_strip_mixed_content() {
+            let p = parser();
+            // Text with a hyperlink in the middle
+            let text =
+                "Click \x1b]8;;https://example.com\x1b\\\x1b[34;4mhere\x1b[0m\x1b]8;;\x1b\\ to continue";
+            assert_eq!(p.strip_ansi(text), "Click here to continue");
+        }
+
+        #[test]
+        fn test_strip_long_url() {
+            let p = parser();
+            // Long URL that would mess up line width calculations
+            let text =
+                "\x1b]8;;https://facebook.github.io/jsx/specification/very/long/path\x1b\\JSX specification\x1b]8;;\x1b\\";
+            assert_eq!(p.strip_ansi(text), "JSX specification");
+        }
+    }
+
+    mod wrap_text_tests {
+        use super::*;
+
+        fn parser_with_width(width: usize) -> StreamingParser {
+            StreamingParser::with_width("base16-ocean.dark", ImageProtocol::None, width)
+        }
+
+        #[test]
+        fn test_wrap_plain_text() {
+            let p = parser_with_width(40);
+            let text = "This is a simple sentence that needs wrapping";
+            let result = p.wrap_text(text, "", "");
+            // Should wrap at width 40
+            assert!(result.lines().all(|line| line.len() <= 40));
+        }
+
+        #[test]
+        fn test_wrap_with_hyperlink_visible_width() {
+            let p = parser_with_width(50);
+            // Create text with a hyperlink - URL is long but visible text is short
+            let text = "Check the \x1b]8;;https://facebook.github.io/jsx/specification\x1b\\\x1b[34;4mJSX specification\x1b[0m\x1b]8;;\x1b\\ for details";
+            let result = p.wrap_text(text, "", "");
+
+            // Visible text is "Check the JSX specification for details" = 40 chars
+            // Should fit on one line at width 50
+            let lines: Vec<&str> = result.lines().collect();
+            assert_eq!(lines.len(), 1, "Should fit on one line. Got: {:?}", lines);
+        }
+
+        #[test]
+        fn test_wrap_hyperlink_not_counted_in_width() {
+            let p = parser_with_width(30);
+            // The visible text "Click here now" is 14 chars
+            // The URL is very long but should not count toward width
+            let text = "Click \x1b]8;;https://example.com/very/long/path/that/would/exceed/width\x1b\\\x1b[34;4mhere\x1b[0m\x1b]8;;\x1b\\ now";
+            let result = p.wrap_text(text, "", "");
+
+            // Should fit on one line since visible text is only 14 chars
+            let lines: Vec<&str> = result.lines().collect();
+            assert_eq!(
+                lines.len(),
+                1,
+                "Short visible text should fit. Got: {:?}",
+                lines
+            );
+        }
+
+        #[test]
+        fn test_wrap_multiple_hyperlinks() {
+            let p = parser_with_width(60);
+            // Two hyperlinks in the same text
+            let text = "See \x1b]8;;https://example1.com\x1b\\\x1b[34;4mlink one\x1b[0m\x1b]8;;\x1b\\ and \x1b]8;;https://example2.com\x1b\\\x1b[34;4mlink two\x1b[0m\x1b]8;;\x1b\\ for more";
+            let result = p.wrap_text(text, "", "");
+
+            // Visible: "See link one and link two for more" = 34 chars
+            let lines: Vec<&str> = result.lines().collect();
+            assert_eq!(lines.len(), 1, "Should fit on one line. Got: {:?}", lines);
+        }
+
+        #[test]
+        fn test_wrap_preserves_hyperlink_sequence() {
+            let p = parser_with_width(80);
+            let text = "\x1b]8;;https://example.com\x1b\\\x1b[34;4mclick me\x1b[0m\x1b]8;;\x1b\\";
+            let result = p.wrap_text(text, "", "");
+
+            // The OSC8 sequences should be preserved
+            assert!(result.contains("\x1b]8;;https://example.com\x1b\\"));
+            assert!(result.contains("\x1b]8;;\x1b\\"));
+        }
+
+        #[test]
+        fn test_wrap_with_indent_and_hyperlink() {
+            let p = parser_with_width(50);
+            let text =
+                "This has a \x1b]8;;https://example.com\x1b\\\x1b[34;4mlink\x1b[0m\x1b]8;;\x1b\\";
+            let result = p.wrap_text(text, "  • ", "    ");
+
+            // Should start with the first indent
+            assert!(result.starts_with("  • "));
+        }
+
+        #[test]
+        fn test_wrap_real_example_jsx_spec() {
+            // This mimics the actual example.md content that was causing issues
+            let p = parser_with_width(80);
+            let text = "I think I originally didn't implement it even though it's part of the \x1b]8;;https://facebook.github.io/jsx/\x1b\\\x1b[34;4mJSX specification\x1b[0m\x1b]8;;\x1b\\ because it previously didn't work in TypeScript";
+            let result = p.wrap_text(text, "", "");
+
+            // Check that lines are reasonably balanced (not ragged)
+            let lines: Vec<&str> = result.lines().collect();
+            for line in &lines {
+                let visible = strip_ansi(line);
+                // Each line should be close to 80 chars (or less for last line)
+                assert!(
+                    visible.chars().count() <= 80,
+                    "Line too long: {} chars",
+                    visible.chars().count()
+                );
+            }
         }
     }
 }
