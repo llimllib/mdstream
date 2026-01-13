@@ -7,6 +7,13 @@ A streaming markdown printer for the terminal that renders GitHub Flavored Markd
 
 _Warning_: I wrote this code as an experiment in LLM development. I do not speak fluent rust and I have not read the markdown parser. I'm pretty sure it cannot do anything dangerous, but you've been warned.
 
+## Features
+
+- Reasonably attractive, colorful display
+- Parses <em>some</em> <b>HTML</b>
+- Renders links as [OSC8](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda) terminal hyperlinks
+  - This sounds fancy, but just means you can click on links if your terminal supports it
+
 ## Installation
 
 ### From crates.io (Recommended)

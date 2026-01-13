@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-01-12
+
+### Fixed
+
+- Exclude build artifacts from crates.io package
+
+## [0.6.0] - 2026-01-12
+
+### Fixed
+
+- Restore heading color after inline formatting
+
+## [0.5.1] - 2026-01-12
+
+### Fixed
+
+- Restore heading color after inline formatting
+
+## [0.5.0] - 2026-01-12
+
+### Added
+
+- **Kitty Graphics Protocol**: Image rendering support for terminals that support the Kitty graphics protocol
+- **Horizontal Rules**: Support for thematic breaks (horizontal rules) using `---`, `***`, or `___`
+- **JSX and TSX Syntax Highlighting**: Enhanced syntax highlighting for React files
+- **HTML Tag Support**: Inline HTML tags are now supported in markdown
+- **Output Width Control**: New `--width` option with word-aware line wrapping
+- **Two-face Syntax Highlighting**: Switched to two-face library for extended language support
+
+### Fixed
+
+- Code fence indentation handling
+- Multi-paragraph list items with blank lines
+- OSC8 hyperlinks in line width calculation
+
+### Changed
+
+- Hyperlinks now styled with blue color and underline
+- Refactored unit tests from lib.rs to tests/unit.rs
+
 ## [0.4.4] - 2026-01-06
 
 - parse link titles
@@ -101,7 +141,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ANSI color output for terminal rendering
 - Comprehensive conformance test suite (TOML-based fixtures)
 
-[Unreleased]: https://github.com/llimllib/mdriver/compare/v0.4.4...HEAD
+[Unreleased]: https://github.com/llimllib/mdriver/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/llimllib/mdriver/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/llimllib/mdriver/compare/v0.5.1...v0.6.0
+[0.5.1]: https://github.com/llimllib/mdriver/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/llimllib/mdriver/compare/v0.4.4...v0.5.0
 [0.4.4]: https://github.com/llimllib/mdriver/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/llimllib/mdriver/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/llimllib/mdriver/compare/v0.4.1...v0.4.2
