@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 
 # Automated release workflow: bumps version, updates changelog, commits, and tags
 # Usage: ./tools/release.sh
