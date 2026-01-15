@@ -1001,3 +1001,56 @@ mod reference_links {
         assert!(result.contains("https://b.com"));
     }
 }
+
+#[cfg(test)]
+mod markdown_image_tests {
+    use super::*;
+
+    #[test]
+    fn test_image_with_spaces_in_alt() {
+        let p = parser();
+        // Image with spaces in alt text should be parsed correctly
+        let result =
+            p.format_inline("![screenshot of gh pr status](https://example.com/image.png)");
+        assert_eq!(
+            result,
+            "![screenshot of gh pr status](https://example.com/image.png)"
+        );
+    }
+
+    #[test]
+    fn test_simple_image() {
+        let p = parser();
+        let result = p.format_inline("![alt](https://example.com/image.png)");
+        assert_eq!(result, "![alt](https://example.com/image.png)");
+    }
+}
+
+#[cfg(test)]
+mod wrap_image_tests {
+    use super::*;
+
+    fn parser_with_width(width: usize) -> StreamingParser {
+        StreamingParser::with_width("base16-ocean.dark", ImageProtocol::None, width)
+    }
+
+    #[test]
+    fn test_image_markdown_not_broken_by_wrapping() {
+        // Image markdown should be kept as a single unit and not broken across lines
+        let p = parser_with_width(40);
+        let image_md = "![screenshot of gh pr status](https://user-images.githubusercontent.com/98482/84171218-327e7a80-aa40-11ea-8cd1-5177fc2d0e72.png)";
+        let result = p.wrap_text(image_md, "", "");
+        // The entire image markdown should be on one line (even if it exceeds width)
+        assert!(!result.contains('\n') || result.trim() == image_md);
+    }
+
+    #[test]
+    fn test_text_with_image_wraps_correctly() {
+        // Text before/after image can wrap, but image stays intact
+        let p = parser_with_width(40);
+        let text = "Here is some text ![alt](https://example.com/img.png) and more text";
+        let result = p.wrap_text(text, "", "");
+        // Image should be intact in the result
+        assert!(result.contains("![alt](https://example.com/img.png)"));
+    }
+}

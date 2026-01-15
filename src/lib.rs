@@ -1556,6 +1556,47 @@ impl StreamingParser {
                     current_token.push(chars[i]);
                     i += 1;
                 }
+            } else if chars[i] == '!' && i + 1 < chars.len() && chars[i + 1] == '[' {
+                // Image markdown: ![alt](url) - keep as single token
+                // First, flush any existing token
+                if !current_token.is_empty() {
+                    tokens.push(current_token);
+                    current_token = String::new();
+                }
+                // Start building the image token
+                current_token.push(chars[i]); // '!'
+                current_token.push(chars[i + 1]); // '['
+                i += 2;
+                // Find closing ]
+                let mut bracket_depth = 1;
+                while i < chars.len() && bracket_depth > 0 {
+                    if chars[i] == '[' {
+                        bracket_depth += 1;
+                    } else if chars[i] == ']' {
+                        bracket_depth -= 1;
+                    }
+                    current_token.push(chars[i]);
+                    i += 1;
+                }
+                // Check for ( following ]
+                if i < chars.len() && chars[i] == '(' {
+                    current_token.push(chars[i]);
+                    i += 1;
+                    // Find closing )
+                    let mut paren_depth = 1;
+                    while i < chars.len() && paren_depth > 0 {
+                        if chars[i] == '(' {
+                            paren_depth += 1;
+                        } else if chars[i] == ')' {
+                            paren_depth -= 1;
+                        }
+                        current_token.push(chars[i]);
+                        i += 1;
+                    }
+                }
+                // The image token is complete, push it
+                tokens.push(current_token);
+                current_token = String::new();
             } else if chars[i].is_whitespace() {
                 if !current_token.is_empty() {
                     tokens.push(current_token);
