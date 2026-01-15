@@ -2010,11 +2010,6 @@ impl StreamingParser {
         // Use the smaller of natural size or configured max width
         let display_cols = natural_cols.min(self.width);
 
-        // Calculate rows to maintain aspect ratio
-        // Terminal cells are roughly 2:1 (height:width in pixels)
-        let aspect_ratio = img.height() as f64 / img.width() as f64;
-        let display_rows = ((display_cols as f64) * aspect_ratio / 2.0).ceil() as usize;
-
         // Resize large images to reduce transfer size (cap at 2000px width)
         // but let kitty handle the display scaling
         let max_transfer_width = 2000u32;
@@ -2032,11 +2027,12 @@ impl StreamingParser {
         let mut png_data = Vec::new();
         resized.write_to(&mut Cursor::new(&mut png_data), image::ImageFormat::Png)?;
 
-        // Render using kitty protocol with display size in terminal cells
-        Ok(self.render_kitty_image(&png_data, display_cols, display_rows))
+        // Render using kitty protocol with display width in columns
+        // Kitty will automatically calculate the row count to maintain aspect ratio
+        Ok(self.render_kitty_image(&png_data, display_cols))
     }
 
-    fn render_kitty_image(&self, png_data: &[u8], columns: usize, rows: usize) -> String {
+    fn render_kitty_image(&self, png_data: &[u8], columns: usize) -> String {
         use base64::{engine::general_purpose::STANDARD, Engine as _};
 
         let encoded = STANDARD.encode(png_data);
@@ -2054,11 +2050,11 @@ impl StreamingParser {
             let m = if is_last { 0 } else { 1 };
 
             if i == 0 {
-                // First chunk: include format, transmission parameters, and display size
-                // c=columns, r=rows tells kitty to scale the image to fit in that many cells
+                // First chunk: include format, transmission parameters, and display width
+                // c=columns tells kitty the width; it calculates rows to maintain aspect ratio
                 output.push_str(&format!(
-                    "\x1b_Gf=100,a=T,c={},r={},m={};{}\x1b\\",
-                    columns, rows, m, chunk
+                    "\x1b_Gf=100,a=T,c={},m={};{}\x1b\\",
+                    columns, m, chunk
                 ));
             } else {
                 // Continuation chunks
