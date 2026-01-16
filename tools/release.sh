@@ -54,7 +54,7 @@ echo ""
 	sed -n '1,/^## \[Unreleased\]/p' CHANGELOG.md
 	echo ""
 	echo "$COMMITS"
-	sed -n '/^## \[Unreleased\]/,${/^## \[Unreleased\]/d;p}' CHANGELOG.md
+	sed -n '/^## \[Unreleased\]/,$p' CHANGELOG.md | sed '1d'
 } > CHANGELOG.md.tmp
 mv CHANGELOG.md.tmp CHANGELOG.md
 
