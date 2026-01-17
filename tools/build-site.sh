@@ -171,7 +171,7 @@ for f in transcripts/*.html; do
     if [ -f "$f" ]; then
         basename=$(basename "$f")
         # Extract PR number (everything before the first dash)
-        pr_number=$(echo "$basename" | sed 's/-.*//')
+        pr_number=${basename//-*/}
         # Extract a readable name from the filename (everything after the PR number)
         name=$(echo "$basename" | sed 's/\.html$//' | sed 's/^[0-9]*-//' | sed 's/-/ /g')
         # Capitalize first letter
